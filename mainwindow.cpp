@@ -77,6 +77,16 @@ void MainWindow::traceNormalization()
 	docker->replot((bool)(docker->traceNormalization ^ true));
 }
 
+void MainWindow::colorScale()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+	if(!docker)
+		return;
+
+	docker->colorScale ^= true;
+	docker->replot();
+}
+
 void MainWindow::wiggleView()
 {
 	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
@@ -206,10 +216,15 @@ void MainWindow::createActions()
 	wiggleViewAct->setCheckable(true);
     connect(wiggleViewAct, &QAction::triggered, this, &MainWindow::wiggleView);
 
-    traceNormalizationAct = new QAction(tr("&Trace Normalization"), this);
+    traceNormalizationAct = new QAction(tr("&Trace normalization"), this);
     traceNormalizationAct->setStatusTip(tr("Apply trace normalization"));
 	traceNormalizationAct->setCheckable(true);
     connect(traceNormalizationAct, &QAction::triggered, this, &MainWindow::traceNormalization);
+
+    colorScaleAct = new QAction(tr("&Color scale"), this);
+    colorScaleAct->setStatusTip(tr("Show color scale"));
+	colorScaleAct->setCheckable(true);
+    connect(colorScaleAct, &QAction::triggered, this, &MainWindow::colorScale);
 
     proceduresAct = new QAction(tr("&Procedures"), this);
     connect(proceduresAct, &QAction::triggered, this, &MainWindow::showpProceduresDialog);
@@ -232,6 +247,7 @@ void MainWindow::createMenus()
 	viewMenu = menuBar()->addMenu(tr("&View"));
 	viewMenu->addAction(wiggleViewAct);
 	viewMenu->addAction(traceNormalizationAct);
+	viewMenu->addAction(colorScaleAct);
 
 	processingMenu = menuBar()->addMenu(tr("&Processing"));
 	processingMenu->addAction(proceduresAct);

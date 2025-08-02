@@ -34,6 +34,7 @@ public slots:
     void redo();
 	void wiggleView();
 	void traceNormalization();
+	void colorScale();
 
 private:
     void createActions();
@@ -56,6 +57,7 @@ private:
     QAction *redoAct;
 	QAction *wiggleViewAct;
 	QAction *traceNormalizationAct;
+	QAction *colorScaleAct;
 	QAction *proceduresAct;
 	QComboBox *colormapCombo;
 	QDoubleSpinBox *scaleSpinBox;

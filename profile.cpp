@@ -189,7 +189,7 @@ void Profile::open_gssi(std::string name, uint16_t channel)
 		throw std::invalid_argument("Bad channel");
 
 	samples = hdr.rh_nsamp;
-	timeWindow = hdr.rh_range;
+	timeWindow = hdr.rh_range*1000;
 
 	in.seekg(0, std::ios_base::end);
 	size_t offset = sizeof(DztHdrStruct)*hdr.rh_nchan;
@@ -314,7 +314,7 @@ void Profile::read_rad(std::string name)
 		}
 		else if(key == "TIMEWINDOW")
 		{
-			timeWindow = std::stod(value);
+			timeWindow = std::stod(value)*1000;
 			if(timeWindow <= 0)
 			{
 				in.close();
@@ -330,7 +330,7 @@ double* Profile::maxSamplePerTrace()
 	double *ret = new double[traces]{};
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
-			ret[i] =  data[i*samples+j] > ret[i] ? data[i*samples+j] : ret[i];
+			ret[i] =  fabs(data[i*samples+j]) > ret[i] ? fabs(data[i*samples+j]) : ret[i];
 	return ret;
 }
 

@@ -17,6 +17,7 @@ public:
 	bool wiggle = false;
 	char wiggleType = 0;
 	bool traceNormalization = false;
+	bool colorScale = false;
 	double scale = 1;
 	QCPColorGradient::GradientPreset gradType = QCPColorGradient::gpGrayscale;
 	std::map<QCustomPlot*, QCPColorMap*> radargram2ColorMap;
@@ -30,6 +31,7 @@ public:
 	void removeColorMap(QCustomPlot*);
 private:
 	QString name;
+	void replotColorScale(QCustomPlot*);
 };
 
 #endif

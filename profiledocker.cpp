@@ -49,12 +49,18 @@ void ProfileDocker::replot(double sc, bool traceNorm)
 
 			if(sc != scale || traceNorm != traceNormalization)
 			{
-				double *norm = traceNorm ? profile.maxSamplePerTrace() : new double[profile.traces]{};
+				double *norm = nullptr;
+				if(traceNorm)
+					norm = profile.maxSamplePerTrace();
 				for(size_t i=0; i<profile.traces; i++)
 					for(size_t j=0; j<profile.samples; j++)
 					{
 						double cell = data[i*profile.samples+j];
-						mapData->setCell(i, j, cell-norm[i]);
+						if(norm)
+							mapData->setCell(i, j, cell/norm[i]);
+						else
+							mapData->setCell(i, j, cell);
+						std::cout << norm[i] << "\n";
 					}
 				radargram2ColorMap[plot]->rescaleDataRange(true);
 
@@ -62,11 +68,17 @@ void ProfileDocker::replot(double sc, bool traceNorm)
 					for(size_t j=0; j<profile.samples; j++)
 					{
 						double cell = data[i*profile.samples+j];
-						mapData->setCell(i, j, (cell-norm[i])*sc);
+						if(norm)
+							mapData->setCell(i, j, (cell/norm[i])*sc);
+						else
+							mapData->setCell(i, j, cell*sc);
 					}
 
-				delete[] norm;
+				if(norm)
+					delete[] norm;
 			}
+
+			replotColorScale(plot);
 			plot->replot();
 		}
 
@@ -84,3 +96,23 @@ void ProfileDocker::removeColorMap(QCustomPlot* radargram)
 		radargram2ColorMap.erase(radargram);
 }
 
+
+void ProfileDocker::replotColorScale(QCustomPlot *plot)
+{
+	auto colorMap = radargram2ColorMap[plot];
+	if(auto colorSc = plot->plotLayout()->element(0, 1))
+	{
+		plot->plotLayout()->remove(colorSc);
+		plot->plotLayout()->simplify();
+	}
+	if(colorScale)
+	{
+		QCPColorScale *colorSc = new QCPColorScale(plot);
+		QCPColorGradient gradient;
+		gradient.loadPreset(gradType);
+		colorSc->setGradient(gradient);
+		colorSc->setDataRange(colorMap->dataRange());
+		colorMap->setColorScale(colorSc);
+		plot->plotLayout()->addElement(0, 1, colorSc);
+	}
+}
