@@ -45,18 +45,28 @@ void MainWindow::redo()
                "menu-bar menus and context menus."));
 }
 
-
-void MainWindow::closeTab(QObject* object)
+void MainWindow::wiggleView()
 {
-	this->setFocus();
+	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+	if(!docker)
+		return;
+	if(docker->isWiggled())
+		return;
+
+	auto widget = docker->createDockWidget("Wiggle view");
+	auto wiggle = docker->profile.createWiggle(1);
+	widget->setWidget(wiggle);
+	docker->addDockWidget(ads::TopDockWidgetArea, widget);
+	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
+			docker->setWiggled(false);
+			});
+	docker->setWiggled(true);
 }
 
 void MainWindow::createActions()
 {
-
 	//open_shortcut.setContext(Qt::ApplicationShortcut);
 	//connect(&open_shortcut, &QShortcut::activated, this, &MainWindow::onOpenFile);
-
     openAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentOpen),
                           tr("&Open..."), this);
     openAct->setShortcuts(QKeySequence::Open);
@@ -88,6 +98,9 @@ void MainWindow::createActions()
     redoAct->setStatusTip(tr("Redo the last operation"));
     connect(redoAct, &QAction::triggered, this, &MainWindow::redo);
 
+    wiggleViewAct = new QAction(tr("&Wiggle view"), this);
+    wiggleViewAct->setStatusTip(tr("Wiggle view of trace"));
+    connect(wiggleViewAct, &QAction::triggered, this, &MainWindow::wiggleView);
 } 
 
 void MainWindow::createMenus()
@@ -104,6 +117,7 @@ void MainWindow::createMenus()
     editMenu->addSeparator();
     
 	viewMenu = menuBar()->addMenu(tr("&View"));
+	viewMenu->addAction(wiggleViewAct);
     //editMenu->addAction(undoAct);
 
 }

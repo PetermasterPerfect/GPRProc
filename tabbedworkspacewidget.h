@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include "DockManager.h"
 #include "profile.h"
+#include "profiledocker.h"
 
 class TabbedWorkspaceWidget : public QWidget
 {
@@ -15,7 +16,7 @@ public:
 	} MainWindowArea;
 
 	explicit TabbedWorkspaceWidget(QString name, QMainWindow* mainWin, QMainWindow* parent);
-	ads::CDockManager* addTab(Profile);
+	ProfileDocker* addTab(Profile);
 	~TabbedWorkspaceWidget() override;
 
 	static TabbedWorkspaceWidget* getInstance(const QString& key);

@@ -31,7 +31,7 @@ public slots:
     void print();
     void undo();
     void redo();
-	void closeTab(QObject*);
+	void wiggleView();
 
 private:
     void createActions();
@@ -54,7 +54,7 @@ private:
     QAction *exitAct;
     QAction *undoAct;
     QAction *redoAct;
-	
+	QAction *wiggleViewAct;
 
 	//QShortcut open_shortcut;
 };

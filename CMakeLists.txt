@@ -12,6 +12,7 @@ qt_add_executable(GPRProc
 	qcustomplot.cpp
 	tabbedworkspacewidget.cpp
 	profile.cpp
+	profiledocker.cpp
 )
 
 set_target_properties(GPRProc PROPERTIES

@@ -5,8 +5,6 @@ std::map<QString, TabbedWorkspaceWidget*> TabbedWorkspaceWidget::instances;
 
 TabbedWorkspaceWidget::TabbedWorkspaceWidget(QString name, QMainWindow* mainWin, QMainWindow* parent): name(name), mainWindow(mainWin), QWidget(parent) 
 {  
-	//if (TabbedWorkspaceWidget::instances.count(name) > 0)
-    //	throw std::runtime_error("This is not supposed to happen");
 	instances[name] = this;
 	tabWidget = new QTabWidget(this);
 	tabWidget->setTabsClosable(true);
@@ -22,7 +20,7 @@ TabbedWorkspaceWidget::~TabbedWorkspaceWidget()
 
 void TabbedWorkspaceWidget::on_tabClose(int index)
 {
-	auto docker = dynamic_cast<ads::CDockManager*>(tabWidget->widget(index));
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->widget(index));
 	if(!docker)
 		return;
 	
@@ -30,18 +28,18 @@ void TabbedWorkspaceWidget::on_tabClose(int index)
 	//docker->deleteLater();
 }
 
-ads::CDockManager* TabbedWorkspaceWidget::addTab(Profile profile)
+ProfileDocker* TabbedWorkspaceWidget::addTab(Profile profile)
 {
-	auto docker = new ads::CDockManager(tabWidget);
+	auto docker = new ProfileDocker(tr(profile.path.c_str()), profile, tabWidget);
 	auto widget = docker->createDockWidget("plot"+QUuid::createUuid().toString());
 	widget->setFeatures(widget->features() & ~ads::CDockWidget::DockWidgetClosable);
-	auto plot = profile.createGraph();
+	auto plot = docker->profile.createGraph();
 	if(!plot)
 		return nullptr;
 	widget->setWidget(plot);
 	docker->addDockWidget(ads::TopDockWidgetArea, widget);
 
-	tabWidget->addTab(docker, "dsads");
+	tabWidget->addTab(docker, tr(profile.path.c_str()));
 	tabWidget->setCurrentWidget(docker);
 	return docker;
 }
