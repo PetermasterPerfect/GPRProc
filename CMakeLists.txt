@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.5)
+project(MyQtApp)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+add_compile_options(-g)
+find_package(Qt5 REQUIRED COMPONENTS Widgets PrintSupport)
+add_executable(MyQtApp main.cpp qcustomplot.cpp profile.cpp)
+target_link_libraries(MyQtApp PRIVATE Qt5::Widgets PRIVATE Qt5::PrintSupport)
