@@ -39,9 +39,71 @@ Profile::Profile(std::string p): path(p)
 		//load dt1
 	else
 		std::cout << "Unsupport extension\n";
+	
+	init = true;
+}
+
+Profile::Profile(const Profile& prof)
+{
+	if(!prof.init)
+		return;
+	path = prof.path;
+	samples = prof.samples;
+	lastTrace = prof.lastTrace;
+	data = std::make_unique<double[]>(samples*lastTrace);
+	for(size_t i=0; i<samples*lastTrace; i++)
+		data[i] = prof.data[i];
+	init = true;
 }
 
 
+QCustomPlot* Profile::createWiggle(size_t n)
+{
+	if(!init)
+		return nullptr;
+
+	QVector<double> x(samples), y(samples);
+	QCustomPlot *wigglePlot = new QCustomPlot();
+	for (int i=0; i<samples; ++i)
+	{
+		x[i] = i;
+		y[i] = data[n*lastTrace+i];
+	}
+	wigglePlot->addGraph();
+	wigglePlot->graph(0)->setData(x, y);
+	wigglePlot->xAxis->setLabel("x");
+	wigglePlot->yAxis->setLabel("y");
+	wigglePlot->rescaleAxes();
+	wigglePlot->replot();
+	return wigglePlot;
+}
+
+QCustomPlot* Profile::createGraph()
+{
+	if(!init)
+		return nullptr;
+
+	QCustomPlot *imagePlot = new QCustomPlot();
+
+	imagePlot->addGraph();
+	imagePlot->xAxis->setLabel("x");
+	imagePlot->yAxis->setLabel("y");
+	imagePlot->yAxis->setRangeReversed(true);
+	QCPRange *samplesRange = new QCPRange(1, samples);
+	QCPRange *tracesRange = new QCPRange(1, lastTrace);
+	QCPColorMapData *mapData = new QCPColorMapData(lastTrace, samples, *tracesRange, *samplesRange);
+	for(size_t i=1; i<=lastTrace; i++)
+		for(size_t j=1; j<=samples; j++)
+			mapData->setData(i, j, data[(i-1)*samples+(j-1)]);
+	QCPColorMap *map = new QCPColorMap(imagePlot->xAxis, imagePlot->yAxis);
+	map->setData(mapData);
+	map->rescaleDataRange();
+	imagePlot->rescaleAxes();
+	imagePlot->replot();
+	delete samplesRange;
+	delete tracesRange;
+	return imagePlot;
+}
 
 void Profile::open_gssi(std::string name, uint16_t channel)
 {
@@ -159,4 +221,3 @@ void Profile::read_rad(std::string name)
 	}
 	in.close();
 }
-

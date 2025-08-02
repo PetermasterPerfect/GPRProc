@@ -1,3 +1,7 @@
+#ifndef PROFILE_H
+#define PROFILE_H
+
+#include "qcustomplot.h"
 #include <memory>
 #include <iostream>
 #include <fstream>
@@ -16,9 +20,16 @@ struct Profile
 	uint32_t samples;
 	uint32_t lastTrace;
 	std::unique_ptr<double[]> data;
-	Profile(std::string);
 
+	QCustomPlot* createWiggle(size_t);
+	QCustomPlot* createGraph();
+	Profile() {}
+	Profile(const Profile&);
+	//~Profile();
+	Profile(std::string);
 private:
+	bool init = false;
+
 	void open_ss(std::string);
 	void open_gssi(std::string, uint16_t channel=1);
 	void open_mala(std::string, bool f=0);
@@ -53,3 +64,4 @@ private:
 	}
 	
 };
+#endif

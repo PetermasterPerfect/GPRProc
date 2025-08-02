@@ -3,6 +3,9 @@
 
 #include <QMainWindow>
 #include "qcustomplot.h"
+#include "DockManager.h"
+#include "profile.h"
+#include "tabbedworkspacewidget.h"
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -23,26 +26,37 @@ protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
 #endif // QT_NO_CONTEXTMENU
 
-private slots:
-    void open();
+public slots:
+    void onOpenFile();
     void print();
     void undo();
     void redo();
+	void closeTab(QObject*);
 
 private:
-	void createGraph(char*);
     void createActions();
     void createMenus();
+	void createGraph(std::string, QCustomPlot*);
+	void createWiggle(size_t, Profile);
 
-	QCustomPlot *customPlot;
+	//QCustomPlot *customPlot = nullptr;
+	bool profileSet = false;
+	ads::CDockManager* dockManager = nullptr;
+	ads::CDockWidget* dockWidget = nullptr;
+	ads::CDockWidget* dockWidget1 = nullptr;
 
+	TabbedWorkspaceWidget *mainTab;
     QMenu *fileMenu;
-    QMenu *editMenu;
+	QMenu *editMenu;
+    QMenu *viewMenu;
     QAction *openAct;
     QAction *printAct;
     QAction *exitAct;
     QAction *undoAct;
     QAction *redoAct;
+	
+
+	//QShortcut open_shortcut;
 };
 
 #endif

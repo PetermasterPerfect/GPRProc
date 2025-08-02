@@ -1,75 +1,20 @@
 #include <QtWidgets>
-
 #include "mainwindow.h"
-#include "profile.h"
 
-//! [0]
 MainWindow::MainWindow(char *fname)
 {
-    QWidget *widget = new QWidget;
-    setCentralWidget(widget);
-//! [0]
+	mainTab = new TabbedWorkspaceWidget("main", this, this);
 
-//! [1]
-    QWidget *topFiller = new QWidget;
-	//topFiller->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-	customPlot = new QCustomPlot();
-    customPlot->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	createGraph(fname);
-
-	QWidget *bottomFiller = new QWidget;
-    //bottomFiller->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->setContentsMargins(5, 5, 5, 5);
-    layout->addWidget(topFiller);
-    layout->addWidget(customPlot);
-    layout->addWidget(bottomFiller);
-    widget->setLayout(layout);
-//! [1]
-
-//! [2]
+	//connect(tabWidget, &QTabWidget::tabCloseRequested,
+    //    this, &MainWindow::closeTab);
     createActions();
     createMenus();
-
-    QString message = tr("A context menu is available by right-clicking");
-    statusBar()->showMessage(message);
 
     setWindowTitle(tr("Menus"));
     setMinimumSize(160, 160);
     resize(480, 320);
 }
 
-
-void MainWindow::createGraph(char *fname)
-{
-	Profile profile(fname);
-
-	// create graph and assign data to it:
-	customPlot->addGraph();
-	//customPlot->graph(0)->setData(x, y);
-	// give the axes some labels:
-	customPlot->xAxis->setLabel("x");
-	customPlot->yAxis->setLabel("y");
-	customPlot->yAxis->setRangeReversed(true);
-	QCPRange *samplesRange = new QCPRange(1, profile.samples);
-	QCPRange *tracesRange = new QCPRange(1, profile.lastTrace);
-	QCPColorMapData *mapData = new QCPColorMapData(profile.lastTrace, profile.samples, *tracesRange, *samplesRange);
-	for(size_t i=1; i<=profile.lastTrace; i++)
-		for(size_t j=1; j<=profile.samples; j++)
-			mapData->setData(i, j, profile.data[(i-1)*profile.samples+(j-1)]);
-	QCPColorMap *map = new QCPColorMap(customPlot->xAxis, customPlot->yAxis);
-	map->setData(mapData);
-	map->rescaleDataRange();
-	// set axes ranges, so we see all data:
-	customPlot->resize(500, 500);
-	customPlot->rescaleAxes();
-	customPlot->replot();
-}
-//! [2]
-
-//! [3]
 #ifndef QT_NO_CONTEXTMENU
 void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 {
@@ -78,12 +23,7 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 }
 #endif // QT_NO_CONTEXTMENU
 	   
-void MainWindow::open()
-{
-    QMessageBox::about(this, tr("OPEN"),
-            tr("The <b>Menu</b> example shows how to create "
-               "menu-bar menus and context menus."));
-}
+
 void MainWindow::print()
 {
     QMessageBox::about(this, tr("PRINT"),
@@ -105,14 +45,23 @@ void MainWindow::redo()
                "menu-bar menus and context menus."));
 }
 
+
+void MainWindow::closeTab(QObject* object)
+{
+	this->setFocus();
+}
+
 void MainWindow::createActions()
 {
+
+	//open_shortcut.setContext(Qt::ApplicationShortcut);
+	//connect(&open_shortcut, &QShortcut::activated, this, &MainWindow::onOpenFile);
 
     openAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentOpen),
                           tr("&Open..."), this);
     openAct->setShortcuts(QKeySequence::Open);
     openAct->setStatusTip(tr("Open an existing file"));
-    connect(openAct, &QAction::triggered, this, &MainWindow::open);
+    connect(openAct, &QAction::triggered, this, &MainWindow::onOpenFile);
 
 
     printAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentPrint),
@@ -153,4 +102,20 @@ void MainWindow::createMenus()
     editMenu->addAction(undoAct);
     editMenu->addAction(redoAct);
     editMenu->addSeparator();
+    
+	viewMenu = menuBar()->addMenu(tr("&View"));
+    //editMenu->addAction(undoAct);
+
+}
+
+void MainWindow::onOpenFile()
+{
+	auto filename = QFileDialog::getOpenFileName(this, tr("Open Image"), "/home/zxcv/geofiz");
+	//QString filename = "/home/zxcv/geofiz/GPRdata/ExampleDuneProfile/DuneData.DZT";
+
+	if(!filename.length())
+		return;
+
+	Profile prof(filename.toStdString());
+	mainTab->addTab(prof);
 }

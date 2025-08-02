@@ -8,8 +8,9 @@ qt_standard_project_setup()
 
 qt_add_executable(GPRProc
     main.cpp
-    mainwindow.cpp mainwindow.h
+    mainwindow.cpp
 	qcustomplot.cpp
+	tabbedworkspacewidget.cpp
 	profile.cpp
 )
 
@@ -17,13 +18,17 @@ set_target_properties(GPRProc PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
 )
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build the examples" FORCE)
+add_subdirectory(thirdparty/Qt-Advanced-Docking-System)
 
 target_link_libraries(GPRProc PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
 	Qt6::PrintSupport
+	qtadvanceddocking-qt6
 )
+
 
 install(TARGETS GPRProc
     BUNDLE  DESTINATION .
