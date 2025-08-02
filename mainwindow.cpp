@@ -31,6 +31,7 @@ MainWindow::MainWindow(char *fname)
 					colormapCombo->setCurrentText(color.first);
 					break;
 				}
+			scaleSpinBox->setValue(docker->scale);
 
 			});
 }
@@ -240,6 +241,18 @@ void MainWindow::createToolbar()
 				return;
 			docker->gradType = gradientMap[text];
 			docker->replot();
+			});
+	scaleSpinBox = new QDoubleSpinBox;
+	scaleSpinBox->setValue(1);
+	scaleSpinBox->setSingleStep(0.5);
+	scaleSpinBox->setDecimals(3);
+	scaleSpinBox->setMinimum(0.000001);
+	toolBar->addWidget(scaleSpinBox);
+	connect(scaleSpinBox, &QDoubleSpinBox::valueChanged, this, [=](double val){
+			auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+			if(!docker)
+				return;
+			docker->replot(val);
 			});
 
 }

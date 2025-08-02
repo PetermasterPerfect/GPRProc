@@ -56,6 +56,7 @@ private:
 	QAction *wiggleViewAct;
 	QAction *proceduresAct;
 	QComboBox *colormapCombo;
+	QDoubleSpinBox *scaleSpinBox;
 
 
 	std::unordered_map<QString, QCPColorGradient::GradientPreset> gradientMap = {

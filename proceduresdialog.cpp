@@ -98,7 +98,7 @@ QWidget* ProceduresDialog::createDcShiftPage()
 			if(!buf)
 				return;
 			
-			auto plotPair = docker->profile.createRadargram(buf, docker->gradType);
+			auto plotPair = docker->profile.createRadargram(buf, docker->gradType, docker->scale);
 			if(!plotPair.value().first)
 				return;
 			docker->profile.data = buf;

@@ -18,8 +18,10 @@ public:
 	char wiggleType = 0;
 	QCPColorGradient::GradientPreset gradType = QCPColorGradient::gpGrayscale;
 	std::map<QCustomPlot*, QCPColorMap*> radargram2ColorMap;
+	double scale = 1;
 
 	void replot();
+	void replot(double);
 	void removeColorMap(QCustomPlot*);
 private:
 	QString name;

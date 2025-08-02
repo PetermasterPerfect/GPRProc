@@ -143,7 +143,7 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 	return wigglePlot;
 }
 
-std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(double *dt, QCPColorGradient::GradientPreset gradType)
+std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(double *dt, QCPColorGradient::GradientPreset gradType, double scale)
 {
 	if(!init)
 		return std::nullopt;
@@ -163,7 +163,7 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(do
 	QCPColorMapData *mapData = new QCPColorMapData(traces, samples, *tracesRange, *samplesRange);
 	for(size_t i=1; i<=traces; i++)
 		for(size_t j=1; j<=samples; j++)
-			mapData->setData(i, j, dt[(i-1)*samples+(j-1)]);
+			mapData->setData(i, j, dt[(i-1)*samples+(j-1)]*scale);
 	QCPColorMap *map = new QCPColorMap(imagePlot->xAxis, imagePlot->yAxis);
 	map->setData(mapData);
 	map->setGradient(gradient);
