@@ -1,4 +1,6 @@
 #include "profile.h"
+#include "formats.h"
+#include <cmath>
 
 file_pair split_filename(std::string fname)
 {
@@ -31,13 +33,84 @@ Profile::Profile(std::string p): path(p)
 	else if(boost::algorithm::to_lower_copy(ext) == "rd7")
 	 	open_mala(name, 1);
 	else if(boost::algorithm::to_lower_copy(ext) == "dzt")
-		std::cout << "ok;";
-		//load dzt
+		open_gssi(name);
 	else if(boost::algorithm::to_lower_copy(ext) == "dt1")
 		std::cout << "ok;";
 		//load dt1
 	else
 		std::cout << "Unsupport extension\n";
+}
+
+
+
+void Profile::open_gssi(std::string name, uint16_t channel)
+{
+	std::ifstream in = open_both_cases(name, ".DZT"); 
+	if(!in)
+		throw std::invalid_argument("No dzt file");
+
+	DztHdrStruct hdr;
+	in.read(reinterpret_cast<char*>(&hdr), sizeof(DztHdrStruct));
+	if(channel <= 0 || channel > hdr.rh_nchan)
+		throw std::invalid_argument("Bad channel");
+
+	samples = hdr.rh_nsamp;
+
+	in.seekg(0, std::ios_base::end);
+	size_t offset = sizeof(DztHdrStruct)*hdr.rh_nchan;
+	size_t sz = static_cast<size_t>(in.tellg());
+	if(sz <= offset)
+		throw std::invalid_argument("Bad offset");
+	sz -= offset;
+	lastTrace = sz/(hdr.rh_bits/8)/samples;
+	in.seekg(offset, std::ios_base::beg);
+	//offset/=hdr.rh_bits/8;
+	if(hdr.rh_bits == 8)
+		read_typed_data<uint8_t>(in, sz);
+	else if(hdr.rh_bits == 16)
+	{
+		read_typed_data<uint16_t>(in, sz);
+		for(int i=0; i<sz/2; i++)
+			data[i] = data[i] - pow(2, 16)/2;
+	}
+	else if(hdr.rh_bits == 32)
+		read_typed_data<uint32_t>(in, sz);
+}
+
+
+void Profile::read_hd(std::string name)
+{
+	std::ifstream in = open_both_cases(name, ".HD"); 
+	if(!in)
+		throw std::invalid_argument("No hd header file");
+	std::string line;
+	while(std::getline(in, line)) 
+	{
+		size_t sep = line.find(" = ");
+		if(sep == std::string::npos)
+			continue;
+		std::string key = line.substr(0, sep);
+		std::string value = line.substr(sep+1);	
+		if(key == "SAMPLES")
+		{
+			samples = std::stol(value);
+			if(samples <= 0)
+			{
+				in.close();
+				throw std::invalid_argument("Bad header info");
+			}
+		}
+		else if(key == "NUMBER OF TRACES")
+		{
+			lastTrace = std::stol(value);
+			if(lastTrace <= 0)
+			{
+				in.close();
+				throw std::invalid_argument("Bad header info");
+			}
+		}
+	}
+	in.close();
 }
 
 void Profile::open_mala(std::string name, bool f)
@@ -69,14 +142,21 @@ void Profile::read_rad(std::string name)
 		{
 			samples = std::stol(value);
 			if(samples <= 0)
+			{
+				in.close();
 				throw std::invalid_argument("Bad header info");
+			}
 		}
 		else if(key == "LAST TRACE")
 		{
 			lastTrace = std::stol(value);
 			if(lastTrace <= 0)
+			{
+				in.close();
 				throw std::invalid_argument("Bad header info");
+			}
 		}
 	}
+	in.close();
 }
 
