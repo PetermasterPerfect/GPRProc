@@ -67,7 +67,7 @@ QCustomPlot* Profile::createWiggle(size_t n)
 	for (int i=0; i<samples; ++i)
 	{
 		x[i] = i;
-		y[i] = data[n*lastTrace+i];
+		y[i] = data[(n-1)*samples+i];
 	}
 	wigglePlot->addGraph();
 	wigglePlot->graph(0)->setData(x, y);

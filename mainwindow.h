@@ -38,6 +38,8 @@ private:
     void createMenus();
 	void createGraph(std::string, QCustomPlot*);
 	void createWiggle(size_t, Profile);
+	void removeWiggle(ProfileDocker*);
+	void setUpWiggle(ProfileDocker*, size_t n);
 
 	//QCustomPlot *customPlot = nullptr;
 	bool profileSet = false;
