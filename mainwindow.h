@@ -37,6 +37,7 @@ public slots:
 private:
     void createActions();
     void createMenus();
+	void createToolbar();
 	void removeWiggle(ProfileDocker*);
 	void setUpWiggle(ProfileDocker*, size_t);
 	void showpProceduresDialog();
@@ -46,6 +47,7 @@ private:
 	QMenu *editMenu;
     QMenu *viewMenu;
     QMenu *processingMenu;
+	QToolBar* toolBar;
     QAction *openAct;
     QAction *printAct;
     QAction *exitAct;
@@ -53,6 +55,22 @@ private:
     QAction *redoAct;
 	QAction *wiggleViewAct;
 	QAction *proceduresAct;
+	QComboBox *colormapCombo;
+
+
+	std::unordered_map<QString, QCPColorGradient::GradientPreset> gradientMap = {
+    {"Gray", QCPColorGradient::gpGrayscale},
+    {"Hot",       QCPColorGradient::gpHot},
+    {"Cold",      QCPColorGradient::gpCold},
+    {"Night",     QCPColorGradient::gpNight},
+    {"Candy",     QCPColorGradient::gpCandy},
+    {"Geography", QCPColorGradient::gpGeography},
+    {"Ion",       QCPColorGradient::gpIon},
+    {"Thermal",   QCPColorGradient::gpThermal},
+    {"Polar",     QCPColorGradient::gpPolar},
+	{"Spectrum",  QCPColorGradient::gpSpectrum},
+    {"Jet",       QCPColorGradient::gpJet},
+    {"Hues",      QCPColorGradient::gpHues}};
 };
 
 #endif

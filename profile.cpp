@@ -143,10 +143,10 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 	return wigglePlot;
 }
 
-QCustomPlot* Profile::createRadargram(double *dt)
+std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(double *dt, QCPColorGradient::GradientPreset gradType)
 {
 	if(!init)
-		return nullptr;
+		return std::nullopt;
 	if(!dt)
 		dt = data;
 
@@ -158,18 +158,21 @@ QCustomPlot* Profile::createRadargram(double *dt)
 	imagePlot->yAxis->setRangeReversed(true);
 	QCPRange *samplesRange = new QCPRange(1, samples);
 	QCPRange *tracesRange = new QCPRange(1, traces);
+	QCPColorGradient gradient;
+	gradient.loadPreset(gradType);
 	QCPColorMapData *mapData = new QCPColorMapData(traces, samples, *tracesRange, *samplesRange);
 	for(size_t i=1; i<=traces; i++)
 		for(size_t j=1; j<=samples; j++)
 			mapData->setData(i, j, dt[(i-1)*samples+(j-1)]);
 	QCPColorMap *map = new QCPColorMap(imagePlot->xAxis, imagePlot->yAxis);
 	map->setData(mapData);
+	map->setGradient(gradient);
 	map->rescaleDataRange();
 	imagePlot->rescaleAxes();
 	imagePlot->replot();
 	delete samplesRange;
 	delete tracesRange;
-	return imagePlot;
+	return std::make_optional(std::make_pair(imagePlot, map));;
 }
 
 void Profile::open_gssi(std::string name, uint16_t channel)
@@ -356,7 +359,7 @@ double* Profile::subtractDcShift(double t1, double t2)
 
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
-			filtered[i*samples+j] = data[i*samples+j]-means[j];
+			filtered[i*samples+j] = data[i*samples+j]-means[i];
 	
 	return filtered;
 }

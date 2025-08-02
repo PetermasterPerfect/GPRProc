@@ -32,14 +32,20 @@ ProfileDocker* TabbedWorkspaceWidget::addTab(Profile profile)
 	auto docker = new ProfileDocker(tr(profile.path.c_str()), profile, tabWidget);
 	auto widget = docker->createDockWidget("plot"+QUuid::createUuid().toString());
 	widget->setFeatures(widget->features() & ~ads::CDockWidget::DockWidgetClosable);
-	auto plot = docker->profile.createRadargram();
-	if(!plot)
+	auto plotPair = docker->profile.createRadargram();
+	if(!plotPair)
 		return nullptr;
-	widget->setWidget(plot);
+	widget->setWidget(plotPair.value().first);
+	docker->radargram2ColorMap.insert(plotPair.value());
 	docker->addDockWidget(ads::TopDockWidgetArea, widget);
-
 	tabWidget->addTab(docker, tr(profile.path.c_str()));
 	tabWidget->setCurrentWidget(docker);
+
+	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
+				std::cout << "close plot1\n";
+				docker->removeDockWidget(widget);
+				docker->removeColorMap(plotPair.value().first);
+			});
 	return docker;
 }
 

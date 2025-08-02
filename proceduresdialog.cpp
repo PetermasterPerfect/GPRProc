@@ -97,10 +97,20 @@ QWidget* ProceduresDialog::createDcShiftPage()
 			auto buf = docker->profile.subtractDcShift(timeWindow1->value(), timeWindow2->value());
 			if(!buf)
 				return;
-			auto radargram = docker->profile.createRadargram(buf);
+			
+			auto plotPair = docker->profile.createRadargram(buf, docker->gradType);
+			if(!plotPair.value().first)
+				return;
 			docker->profile.data = buf;
-			radargram->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-			widget->setWidget(radargram);
+			//plotPair.value().first->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+			connect(widget, &ads::CDockWidget::closed, docker, [=]() {
+					std::cout << "close plot2\n";
+					docker->removeDockWidget(widget);
+					docker->removeColorMap(plotPair.value().first);
+				});
+			widget->setWidget(plotPair.value().first);
+			docker->radargram2ColorMap.insert(plotPair.value());
 			docker->addDockWidget(ads::BottomDockWidgetArea, widget);
 
 		});

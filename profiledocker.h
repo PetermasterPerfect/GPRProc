@@ -15,7 +15,12 @@ public:
 
 	Profile profile;
 	bool wiggle = false;
-	char type = 0;
+	char wiggleType = 0;
+	QCPColorGradient::GradientPreset gradType = QCPColorGradient::gpGrayscale;
+	std::map<QCustomPlot*, QCPColorMap*> radargram2ColorMap;
+
+	void replot();
+	void removeColorMap(QCustomPlot*);
 private:
 	QString name;
 };

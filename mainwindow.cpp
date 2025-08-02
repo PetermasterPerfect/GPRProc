@@ -10,6 +10,7 @@ MainWindow::MainWindow(char *fname)
     //    this, &MainWindow::closeTab);
     createActions();
     createMenus();
+	createToolbar();
 
     setWindowTitle(tr("Menus"));
     setMinimumSize(160, 160);
@@ -23,9 +24,14 @@ MainWindow::MainWindow(char *fname)
 			auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
 			if(!docker)
 				return;
-			std::cout << "Wiggle: " << docker->wiggle << "\n";
 			wiggleViewAct->setChecked(docker->wiggle);
-			std::cout << "Change\n";
+			for(auto &color : gradientMap)
+				if(color.second == docker->gradType)
+				{
+					colormapCombo->setCurrentText(color.first);
+					break;
+				}
+
 			});
 }
 
@@ -94,10 +100,10 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 	QRadioButton *amplitudeButton = new QRadioButton("amplitude");
 	QRadioButton *phaseButton = new QRadioButton("phase");
 	auto widget = docker->createDockWidget("Wiggle view");
-	auto wiggle = docker->profile.createWiggle(n, docker->type);
-	if(docker->type == 0)
+	auto wiggle = docker->profile.createWiggle(n, docker->wiggleType);
+	if(docker->wiggleType == 0)
 		currentButton->setChecked(true);
-	else if(docker->type == 1)
+	else if(docker->wiggleType == 1)
 		amplitudeButton->setChecked(true);
 	else
 		phaseButton->setChecked(true);
@@ -128,7 +134,7 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 
 	connect(currentButton, &QRadioButton::toggled, this, [=](bool checked) {
 			if(checked) {
-				docker->type = 0;
+				docker->wiggleType = 0;
 				removeWiggle(docker);
 				setUpWiggle(docker, spinBox->value());
 			}
@@ -136,14 +142,14 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 
 	connect(amplitudeButton, &QRadioButton::toggled, this, [=](bool checked) {
 			if(checked) {
-				docker->type = 1;
+				docker->wiggleType = 1;
 				removeWiggle(docker);
 				setUpWiggle(docker, spinBox->value());
 			}
 			});
 	connect(phaseButton, &QRadioButton::toggled, this, [=](bool checked) {
 			if(checked) {
-				docker->type = 2;
+				docker->wiggleType = 2;
 				removeWiggle(docker);
 				setUpWiggle(docker, spinBox->value());
 			}
@@ -219,6 +225,24 @@ void MainWindow::createMenus()
 
 }
 
+
+void MainWindow::createToolbar()
+{
+	toolBar = addToolBar("Toolbar");
+	toolBar->addAction(openAct);
+	colormapCombo = new QComboBox;
+	for(auto &color : gradientMap)
+		colormapCombo->addItem(color.first);
+	toolBar->addWidget(colormapCombo);
+	connect(colormapCombo, &QComboBox::currentTextChanged, this, [=](const QString &text) {
+			auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+			if(!docker)
+				return;
+			docker->gradType = gradientMap[text];
+			docker->replot();
+			});
+
+}
 
 void MainWindow::showpProceduresDialog()
 {

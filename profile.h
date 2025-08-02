@@ -25,7 +25,7 @@ struct Profile
 	double *timeDomain = nullptr;
 
 	QCustomPlot* createWiggle(size_t, char type=0);
-	QCustomPlot* createRadargram(double *dt=nullptr);
+	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(double *dt=nullptr, QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale);
 	double *subtractDcShift(double, double);
 	Profile() {}
 	Profile(Profile&);
