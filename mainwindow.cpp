@@ -21,6 +21,8 @@ MainWindow::MainWindow(char *fname)
 
 	connect(mainTab->tabWidget, &QTabWidget::currentChanged, this, [=]() {
 			auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+			if(!docker)
+				return;
 			std::cout << "Wiggle: " << docker->wiggle << "\n";
 			wiggleViewAct->setChecked(docker->wiggle);
 			std::cout << "Change\n";
@@ -102,7 +104,7 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 
 	spinBox->setFixedWidth(200);
 	spinBox->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-	spinBox->setRange(1, docker->profile.lastTrace);
+	spinBox->setRange(1, docker->profile.traces);
 	spinBox->setValue(n);
 	wiggle->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	layout->setContentsMargins(5, 5, 5, 5);
@@ -149,7 +151,6 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 	docker->wiggle = true;
 }
 
-
 void MainWindow::createActions()
 {
 	//open_shortcut.setContext(Qt::ApplicationShortcut);
@@ -189,6 +190,10 @@ void MainWindow::createActions()
     wiggleViewAct->setStatusTip(tr("Wiggle view of trace"));
 	wiggleViewAct->setCheckable(true);
     connect(wiggleViewAct, &QAction::triggered, this, &MainWindow::wiggleView);
+
+    proceduresAct = new QAction(tr("&Procedures"), this);
+    connect(proceduresAct, &QAction::triggered, this, &MainWindow::showpProceduresDialog);
+
 } 
 
 void MainWindow::createMenus()
@@ -206,8 +211,22 @@ void MainWindow::createMenus()
     
 	viewMenu = menuBar()->addMenu(tr("&View"));
 	viewMenu->addAction(wiggleViewAct);
+
+
+	processingMenu = menuBar()->addMenu(tr("&Processing"));
+	processingMenu->addAction(proceduresAct);
     //editMenu->addAction(undoAct);
 
+}
+
+
+void MainWindow::showpProceduresDialog()
+{
+	if(!mainTab->tabWidget->currentWidget())
+		return;
+    ProceduresDialog *options = new ProceduresDialog(mainTab->tabWidget, this);
+    options->setAttribute(Qt::WA_DeleteOnClose);
+    options->show(); 
 }
 
 void MainWindow::onOpenFile()
@@ -219,5 +238,5 @@ void MainWindow::onOpenFile()
 		return;
 
 	Profile prof(filename.toStdString());
-	mainTab->addTab(prof);
+	mainTab->addTab(std::move(prof));
 }

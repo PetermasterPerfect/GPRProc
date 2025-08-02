@@ -43,27 +43,53 @@ Profile::Profile(std::string p): path(p)
 	init = true;
 }
 
-Profile::Profile(const Profile& prof)
+Profile::Profile(Profile& prof)
 {
 	if(!prof.init)
 		return;
 	path = prof.path;
 	samples = prof.samples;
-	lastTrace = prof.lastTrace;
-	data = fftw_alloc_real(samples*lastTrace);
+	traces = prof.traces;
+	timeWindow = prof.timeWindow;
+	data = fftw_alloc_real(samples*traces);
 	if(!data)
 		throw std::runtime_error("Memory allocation error");
-	for(size_t i=0; i<samples*lastTrace; i++)
+	for(size_t i=0; i<samples*traces; i++)
 		data[i] = prof.data[i];
+
+	timeDomain = new double[samples];
+	for(unsigned i=0; i<samples; i++)
+		timeDomain[i] = prof.timeDomain[i];
+
 	init = true;
 }
 
+
+Profile::Profile(Profile&& prof)
+{
+	if(!prof.init)
+		return;
+	path = prof.path;
+	samples = prof.samples;
+	traces = prof.traces;
+	timeWindow = prof.timeWindow;
+	data = prof.data;
+	prof.data = nullptr;
+	timeDomain = prof.timeDomain;
+	prof.timeDomain = nullptr;
+
+	init = true;
+}
 
 Profile::~Profile()
 {
 	if(data)
 		fftw_free(data);
 	data = nullptr;
+
+	if(timeDomain)
+		delete[] timeDomain;
+	timeDomain = nullptr;
 }
 
 QCustomPlot* Profile::createWiggle(size_t n, char type)
@@ -85,7 +111,7 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 	case 1: // amplitude
 	case 2:
 		fftw_plan p;
-		fftw_complex *fourier = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * lastTrace*samples);
+		fftw_complex *fourier = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * traces*samples);
 		double *trace = fftw_alloc_real(samples);
 		for (int i=0; i<samples; ++i)
 			trace[i] = data[(n-1)*samples+i];
@@ -100,7 +126,7 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 			if(type == 1)
 				y[i] = sqrt(pow(fourier[i][0], 2) + pow(fourier[i][1], 2));
 			else
-				y[i] = atan(fourier[i][1]/fourier[i][0]);
+				y[i] = atan2(fourier[i][1], fourier[i][0]);
 		}
 		fftw_destroy_plan(p);
 		fftw_free(fourier);
@@ -117,10 +143,12 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 	return wigglePlot;
 }
 
-QCustomPlot* Profile::createGraph()
+QCustomPlot* Profile::createRadargram(double *dt)
 {
 	if(!init)
 		return nullptr;
+	if(!dt)
+		dt = data;
 
 	QCustomPlot *imagePlot = new QCustomPlot();
 
@@ -129,11 +157,11 @@ QCustomPlot* Profile::createGraph()
 	imagePlot->yAxis->setLabel("y");
 	imagePlot->yAxis->setRangeReversed(true);
 	QCPRange *samplesRange = new QCPRange(1, samples);
-	QCPRange *tracesRange = new QCPRange(1, lastTrace);
-	QCPColorMapData *mapData = new QCPColorMapData(lastTrace, samples, *tracesRange, *samplesRange);
-	for(size_t i=1; i<=lastTrace; i++)
+	QCPRange *tracesRange = new QCPRange(1, traces);
+	QCPColorMapData *mapData = new QCPColorMapData(traces, samples, *tracesRange, *samplesRange);
+	for(size_t i=1; i<=traces; i++)
 		for(size_t j=1; j<=samples; j++)
-			mapData->setData(i, j, data[(i-1)*samples+(j-1)]);
+			mapData->setData(i, j, dt[(i-1)*samples+(j-1)]);
 	QCPColorMap *map = new QCPColorMap(imagePlot->xAxis, imagePlot->yAxis);
 	map->setData(mapData);
 	map->rescaleDataRange();
@@ -156,6 +184,7 @@ void Profile::open_gssi(std::string name, uint16_t channel)
 		throw std::invalid_argument("Bad channel");
 
 	samples = hdr.rh_nsamp;
+	timeWindow = hdr.rh_range;
 
 	in.seekg(0, std::ios_base::end);
 	size_t offset = sizeof(DztHdrStruct)*hdr.rh_nchan;
@@ -163,7 +192,7 @@ void Profile::open_gssi(std::string name, uint16_t channel)
 	if(sz <= offset)
 		throw std::invalid_argument("Bad offset");
 	sz -= offset;
-	lastTrace = sz/(hdr.rh_bits/8)/samples;
+	traces = sz/(hdr.rh_bits/8)/samples;
 	in.seekg(offset, std::ios_base::beg);
 	//offset/=hdr.rh_bits/8;
 	if(hdr.rh_bits == 8)
@@ -176,6 +205,8 @@ void Profile::open_gssi(std::string name, uint16_t channel)
 	}
 	else if(hdr.rh_bits == 32)
 		read_typed_data<uint32_t>(in, sz);
+
+	read_timeDomain();
 }
 
 
@@ -203,8 +234,8 @@ void Profile::read_hd(std::string name)
 		}
 		else if(key == "NUMBER OF TRACES")
 		{
-			lastTrace = std::stol(value);
-			if(lastTrace <= 0)
+			traces = std::stol(value);
+			if(traces <= 0)
 			{
 				in.close();
 				throw std::invalid_argument("Bad header info");
@@ -221,7 +252,25 @@ void Profile::open_mala(std::string name, bool f)
 		read_rd37<short>();
 	else
 		read_rd37<int>();
-	std::cout << "Samples: " << samples << " , traces: " << lastTrace << "\n"; 
+
+	read_timeDomain();
+	std::cout << "Samples: " << samples << " , traces: " << traces << ", timewindow: " << timeWindow << "\n"; 
+}
+
+
+void Profile::read_timeDomain()
+{
+	timeDomain = new double[samples];
+	if(!timeDomain)
+		throw std::runtime_error("No memory");
+
+	double timeIt = timeWindow/samples;
+	double curTime = 0;
+	for(unsigned i=0; i<samples; i++)
+	{
+		timeDomain[i] = curTime;
+		curTime += timeIt;
+	}
 }
 
 void Profile::read_rad(std::string name)
@@ -251,8 +300,17 @@ void Profile::read_rad(std::string name)
 		}
 		else if(key == "LAST TRACE")
 		{
-			lastTrace = std::stol(value);
-			if(lastTrace <= 0)
+			traces = std::stol(value);
+			if(traces <= 0)
+			{
+				in.close();
+				throw std::invalid_argument("Bad header info");
+			}
+		}
+		else if(key == "TIMEWINDOW")
+		{
+			timeWindow = std::stod(value);
+			if(timeWindow <= 0)
 			{
 				in.close();
 				throw std::invalid_argument("Bad header info");
@@ -260,4 +318,45 @@ void Profile::read_rad(std::string name)
 		}
 	}
 	in.close();
+}
+
+
+double* Profile::subtractDcShift(double t1, double t2)
+{
+	if(t1 < 0 || t2 < 0 || t1 > t2 | t1 > timeWindow || t2 > timeWindow)
+		return nullptr;
+
+	double *filtered = fftw_alloc_real(samples*traces);
+	std::vector<double> samplesForMean, means;
+	size_t start, end;
+	bool fs, fe;
+	fs = fe = false;
+
+	for(size_t j=0; j<samples; j++)
+		if(timeDomain[j] >= t1 && !fs)
+		{
+			start = j;
+			fs = true;
+		}
+		else if(timeDomain[j] > t2 && !fe)
+		{
+			end = j;
+			fe = true;
+			break;
+		}
+
+	for(size_t i=0; i<traces; i++)
+	{
+		for(size_t j=start; j<end; j++)
+			samplesForMean.push_back(data[i*samples+j]);
+		means.push_back(std::accumulate(samplesForMean.begin(), samplesForMean.end(), 0.0)/samplesForMean.size());
+		samplesForMean.clear();
+	}
+
+
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=0; j<samples; j++)
+			filtered[i*samples+j] = data[i*samples+j]-means[j];
+	
+	return filtered;
 }

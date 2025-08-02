@@ -6,6 +6,7 @@
 #include "DockManager.h"
 #include "profile.h"
 #include "tabbedworkspacewidget.h"
+#include "proceduresdialog.h"
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -36,29 +37,22 @@ public slots:
 private:
     void createActions();
     void createMenus();
-	void createGraph(std::string, QCustomPlot*);
-	void createWiggle(size_t, Profile);
 	void removeWiggle(ProfileDocker*);
-	void setUpWiggle(ProfileDocker*, size_t n);
-
-	//QCustomPlot *customPlot = nullptr;
-	bool profileSet = false;
-	ads::CDockManager* dockManager = nullptr;
-	ads::CDockWidget* dockWidget = nullptr;
-	ads::CDockWidget* dockWidget1 = nullptr;
+	void setUpWiggle(ProfileDocker*, size_t);
+	void showpProceduresDialog();
 
 	TabbedWorkspaceWidget *mainTab;
     QMenu *fileMenu;
 	QMenu *editMenu;
     QMenu *viewMenu;
+    QMenu *processingMenu;
     QAction *openAct;
     QAction *printAct;
     QAction *exitAct;
     QAction *undoAct;
     QAction *redoAct;
 	QAction *wiggleViewAct;
-
-	//QShortcut open_shortcut;
+	QAction *proceduresAct;
 };
 
 #endif

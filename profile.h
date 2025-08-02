@@ -19,13 +19,17 @@ struct Profile
 {
 	std::string path;
 	uint32_t samples;
-	uint32_t lastTrace;
+	uint32_t traces;
+	double timeWindow;
 	double *data = nullptr;
+	double *timeDomain = nullptr;
 
 	QCustomPlot* createWiggle(size_t, char type=0);
-	QCustomPlot* createGraph();
+	QCustomPlot* createRadargram(double *dt=nullptr);
+	double *subtractDcShift(double, double);
 	Profile() {}
-	Profile(const Profile&);
+	Profile(Profile&);
+	Profile(Profile&&);
 	~Profile();
 	Profile(std::string);
 private:
@@ -36,6 +40,7 @@ private:
 	void open_mala(std::string, bool f=0);
 	void read_rad(std::string);
 	void read_hd(std::string);
+	void read_timeDomain();
 	template<class T>
 	void read_rd37()
 	{
@@ -56,6 +61,8 @@ private:
 	void read_typed_data(std::ifstream &in, size_t sz)
 	{
 		data = fftw_alloc_real(sz/sizeof(T));
+		if(!data)
+			throw std::runtime_error("No memory");
 		for(int i=0; i<sz/sizeof(T); i++)
 		{
 			T buf;

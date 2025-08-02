@@ -13,6 +13,7 @@ qt_add_executable(GPRProc
 	tabbedworkspacewidget.cpp
 	profile.cpp
 	profiledocker.cpp
+	proceduresdialog.cpp
 )
 
 set_target_properties(GPRProc PROPERTIES

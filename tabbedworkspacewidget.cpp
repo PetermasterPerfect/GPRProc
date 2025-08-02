@@ -25,7 +25,6 @@ void TabbedWorkspaceWidget::on_tabClose(int index)
 		return;
 	
 	tabWidget->removeTab(index);
-	//docker->deleteLater();
 }
 
 ProfileDocker* TabbedWorkspaceWidget::addTab(Profile profile)
@@ -33,7 +32,7 @@ ProfileDocker* TabbedWorkspaceWidget::addTab(Profile profile)
 	auto docker = new ProfileDocker(tr(profile.path.c_str()), profile, tabWidget);
 	auto widget = docker->createDockWidget("plot"+QUuid::createUuid().toString());
 	widget->setFeatures(widget->features() & ~ads::CDockWidget::DockWidgetClosable);
-	auto plot = docker->profile.createGraph();
+	auto plot = docker->profile.createRadargram();
 	if(!plot)
 		return nullptr;
 	widget->setWidget(plot);
