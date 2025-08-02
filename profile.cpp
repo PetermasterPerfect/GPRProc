@@ -50,25 +50,64 @@ Profile::Profile(const Profile& prof)
 	path = prof.path;
 	samples = prof.samples;
 	lastTrace = prof.lastTrace;
-	data = std::make_unique<double[]>(samples*lastTrace);
+	data = fftw_alloc_real(samples*lastTrace);
+	if(!data)
+		throw std::runtime_error("Memory allocation error");
 	for(size_t i=0; i<samples*lastTrace; i++)
 		data[i] = prof.data[i];
 	init = true;
 }
 
 
-QCustomPlot* Profile::createWiggle(size_t n)
+Profile::~Profile()
+{
+	if(data)
+		fftw_free(data);
+	data = nullptr;
+}
+
+QCustomPlot* Profile::createWiggle(size_t n, char type)
 {
 	if(!init)
 		return nullptr;
 
 	QVector<double> x(samples), y(samples);
 	QCustomPlot *wigglePlot = new QCustomPlot();
-	for (int i=0; i<samples; ++i)
+	switch(type)
 	{
-		x[i] = i;
-		y[i] = data[(n-1)*samples+i];
+	case 0: // trace
+		for (int i=0; i<samples; ++i)
+		{
+			x[i] = i;
+			y[i] = data[(n-1)*samples+i];
+		}
+		break;
+	case 1: // amplitude
+	case 2:
+		fftw_plan p;
+		fftw_complex *fourier = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * lastTrace*samples);
+		double *trace = fftw_alloc_real(samples);
+		for (int i=0; i<samples; ++i)
+			trace[i] = data[(n-1)*samples+i];
+
+		p = fftw_plan_dft_r2c_1d(samples, trace, fourier, FFTW_ESTIMATE);
+		if(!fourier)
+			return nullptr;
+		fftw_execute(p);
+		for (int i=0; i<samples/2; ++i)
+		{
+			x[i] = i;
+			if(type == 1)
+				y[i] = sqrt(pow(fourier[i][0], 2) + pow(fourier[i][1], 2));
+			else
+				y[i] = atan(fourier[i][1]/fourier[i][0]);
+		}
+		fftw_destroy_plan(p);
+		fftw_free(fourier);
+		fftw_free(trace);
+		break;
 	}
+
 	wigglePlot->addGraph();
 	wigglePlot->graph(0)->setData(x, y);
 	wigglePlot->xAxis->setLabel("x");
@@ -182,6 +221,7 @@ void Profile::open_mala(std::string name, bool f)
 		read_rd37<short>();
 	else
 		read_rd37<int>();
+	std::cout << "Samples: " << samples << " , traces: " << lastTrace << "\n"; 
 }
 
 void Profile::read_rad(std::string name)

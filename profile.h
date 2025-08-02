@@ -9,6 +9,7 @@
 #include <boost/algorithm/string.hpp>
 #include <utility>
 #include <map>
+#include <fftw3.h>
 
 using file_pair = std::pair<std::string, std::string>;// file_pair;
 std::ifstream open_both_cases(std::string name, std::string ext);
@@ -19,13 +20,13 @@ struct Profile
 	std::string path;
 	uint32_t samples;
 	uint32_t lastTrace;
-	std::unique_ptr<double[]> data;
+	double *data = nullptr;
 
-	QCustomPlot* createWiggle(size_t);
+	QCustomPlot* createWiggle(size_t, char type=0);
 	QCustomPlot* createGraph();
 	Profile() {}
 	Profile(const Profile&);
-	//~Profile();
+	~Profile();
 	Profile(std::string);
 private:
 	bool init = false;
@@ -54,7 +55,7 @@ private:
 	template<class T>
 	void read_typed_data(std::ifstream &in, size_t sz)
 	{
-		data = std::make_unique<double[]>(sz/sizeof(T));
+		data = fftw_alloc_real(sz/sizeof(T));
 		for(int i=0; i<sz/sizeof(T); i++)
 		{
 			T buf;

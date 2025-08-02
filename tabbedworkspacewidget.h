@@ -29,7 +29,6 @@ private slots:
 private:
 	const QString name;
 	QMainWindow* mainWindow;
-	Profile profile;
 
 	//virtual void closeEvent(QCloseEvent* event) override;
 

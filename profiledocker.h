@@ -12,13 +12,12 @@ class ProfileDocker : public ads::CDockManager
 public:
 	ProfileDocker(QString name, Profile& prof, QWidget* parent = nullptr);
 	~ProfileDocker();
-	bool isWiggled() { return wiggled; }
-	void setWiggled(bool val) { wiggled = val; }
 
 	Profile profile;
+	bool wiggle = false;
+	char type = 0;
 private:
 	QString name;
-	bool wiggled = false;
 };
 
 #endif

@@ -20,6 +20,9 @@ MainWindow::MainWindow(char *fname)
 			});
 
 	connect(mainTab->tabWidget, &QTabWidget::currentChanged, this, [=]() {
+			auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+			std::cout << "Wiggle: " << docker->wiggle << "\n";
+			wiggleViewAct->setChecked(docker->wiggle);
 			std::cout << "Change\n";
 			});
 }
@@ -59,7 +62,7 @@ void MainWindow::wiggleView()
 	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
 	if(!docker)
 		return;
-	if(docker->isWiggled())
+	if(docker->wiggle)
 	{
 		removeWiggle(docker);
 		return;
@@ -73,7 +76,7 @@ void MainWindow::removeWiggle(ProfileDocker *docker)
 	auto widget = docker->findDockWidget("Wiggle view");
 	if(widget)
 		docker->removeDockWidget(widget);
-	docker->setWiggled(false);
+	docker->wiggle = false;
 	wiggleViewAct->setChecked(false);
 }
 
@@ -89,9 +92,15 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 	QRadioButton *amplitudeButton = new QRadioButton("amplitude");
 	QRadioButton *phaseButton = new QRadioButton("phase");
 	auto widget = docker->createDockWidget("Wiggle view");
-	auto wiggle = docker->profile.createWiggle(n);
+	auto wiggle = docker->profile.createWiggle(n, docker->type);
+	if(docker->type == 0)
+		currentButton->setChecked(true);
+	else if(docker->type == 1)
+		amplitudeButton->setChecked(true);
+	else
+		phaseButton->setChecked(true);
 
-	spinBox->setFixedWidth(100);
+	spinBox->setFixedWidth(200);
 	spinBox->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
 	spinBox->setRange(1, docker->profile.lastTrace);
 	spinBox->setValue(n);
@@ -108,13 +117,36 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 	docker->addDockWidget(ads::TopDockWidgetArea, widget);
 	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
 			wiggleViewAct->setChecked(false);
-			docker->setWiggled(false);
+			docker->wiggle = false;
 			});
 	connect(spinBox, &QSpinBox::valueChanged, this, [=](int i) {
 			removeWiggle(docker);
 			setUpWiggle(docker, i);
 			});
-	docker->setWiggled(true);
+
+	connect(currentButton, &QRadioButton::toggled, this, [=](bool checked) {
+			if(checked) {
+				docker->type = 0;
+				removeWiggle(docker);
+				setUpWiggle(docker, spinBox->value());
+			}
+			});
+
+	connect(amplitudeButton, &QRadioButton::toggled, this, [=](bool checked) {
+			if(checked) {
+				docker->type = 1;
+				removeWiggle(docker);
+				setUpWiggle(docker, spinBox->value());
+			}
+			});
+	connect(phaseButton, &QRadioButton::toggled, this, [=](bool checked) {
+			if(checked) {
+				docker->type = 2;
+				removeWiggle(docker);
+				setUpWiggle(docker, spinBox->value());
+			}
+			});
+	docker->wiggle = true;
 }
 
 
