@@ -326,6 +326,7 @@ void Profile::read_rad(std::string name)
 
 double* Profile::subtractDcShift(double t1, double t2)
 {
+	std::cout << "dc: " << t1 << "\n";
 	if(t1 < 0 || t2 < 0 || t1 > t2 | t1 > timeWindow || t2 > timeWindow)
 		return nullptr;
 
@@ -362,4 +363,10 @@ double* Profile::subtractDcShift(double t1, double t2)
 			filtered[i*samples+j] = data[i*samples+j]-means[i];
 	
 	return filtered;
+}
+
+
+double* Profile::subtractDewow(double t1)
+{
+	std::cout << "dewow: " << t1 << "\n";
 }

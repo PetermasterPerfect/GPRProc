@@ -2,12 +2,15 @@
 
 
 ProfileDocker::ProfileDocker(QString name, Profile& prof, QWidget* parent) :
-	ads::CDockManager(parent), name(name), profile(prof)
+	ads::CDockManager(parent), name(name), profile(prof), anonymousProc("", nullptr)
 {
 }
 
 ProfileDocker::~ProfileDocker()
 {
+	if(anonymousProc.second)
+		fftw_free(anonymousProc.second);
+	anonymousProc.second = nullptr;
 }
 
 
@@ -36,7 +39,7 @@ void ProfileDocker::replot(double sc)
 					for(size_t j=0; j<profile.samples; j++)
 					{
 						double cell = profile.data[i*profile.samples+j];
-						mapData->setCell(i, j, cell*scale);
+						mapData->setCell(i, j, cell*sc);
 					}
 			}
 			plot->replot();

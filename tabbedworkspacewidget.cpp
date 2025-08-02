@@ -29,16 +29,19 @@ void TabbedWorkspaceWidget::on_tabClose(int index)
 
 ProfileDocker* TabbedWorkspaceWidget::addTab(Profile profile)
 {
-	auto docker = new ProfileDocker(tr(profile.path.c_str()), profile, tabWidget);
-	auto widget = docker->createDockWidget("plot"+QUuid::createUuid().toString());
-	widget->setFeatures(widget->features() & ~ads::CDockWidget::DockWidgetClosable);
+	auto path = tr(profile.path.c_str());
+	auto docker = new ProfileDocker(path, profile, tabWidget);
+	auto widget = docker->createDockWidget(path);
+	widget->setFeatures(widget->features() & 
+			~ads::CDockWidget::DockWidgetClosable & ~ads::CDockWidget::DockWidgetFloatable);
 	auto plotPair = docker->profile.createRadargram();
 	if(!plotPair)
 		return nullptr;
 	widget->setWidget(plotPair.value().first);
 	docker->radargram2ColorMap.insert(plotPair.value());
 	docker->addDockWidget(ads::TopDockWidgetArea, widget);
-	tabWidget->addTab(docker, tr(profile.path.c_str()));
+	docker->processingSteps[path] = docker->profile.data;
+	tabWidget->addTab(docker, path);
 	tabWidget->setCurrentWidget(docker);
 
 	connect(widget, &ads::CDockWidget::closed, docker, [=]() {

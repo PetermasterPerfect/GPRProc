@@ -27,11 +27,13 @@ struct Profile
 	QCustomPlot* createWiggle(size_t, char type=0);
 	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(double *dt=nullptr, QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale, double scale=1);
 	double *subtractDcShift(double, double);
+
+	double* subtractDewow(double);
 	Profile() {}
 	Profile(Profile&);
 	Profile(Profile&&);
-	~Profile();
 	Profile(std::string);
+	~Profile();
 private:
 	bool init = false;
 

@@ -5,6 +5,12 @@
 #include <QRadioButton>
 #include <QStackedWidget>
 #include "profiledocker.h"
+#include <functional>
+#include <any>
+
+#define TIMEWINDOW(pre, post) QDoubleSpinBox* pre##TimeWindow##post;
+
+static const char *proceduresNames[] = {"Subtract DC-shif", "Subtract mean (dewow)"};
 
 class ProceduresDialog : public QDialog {
     Q_OBJECT
@@ -18,12 +24,23 @@ private slots:
 private:
 	QTabWidget *tabWidget;
 
-    QRadioButton *dcShiftRadio;
-    QRadioButton *dewowRadio;
+	std::array<QRadioButton*, 2> proceduresRadios;
     QStackedWidget *stack;
+	TIMEWINDOW(dc, 1);
+	TIMEWINDOW(dc, 2);
+	TIMEWINDOW(dewow, 1);
 
+	void apply(ProfileDocker*, double*, QString);
+	void applyProc(ProfileDocker*, double*, QString);
+	void applyBase(ProfileDocker*, double*, QString);
+	void addProcessing(ProfileDocker*, QPushButton*);
+
+	void procDc();
 	QWidget* createDcShiftPage();
 	QWidget* createDewowPage();
 	void setupStackedOptions();
+	QString getProcessingName(ProfileDocker*, QLineEdit*);
+
+	std::any procedur;
 };
 #endif
