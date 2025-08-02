@@ -1,16 +1,19 @@
 #include "profiledocker.h"
 
 
-ProfileDocker::ProfileDocker(QString name, Profile& prof, QWidget* parent) :
-	ads::CDockManager(parent), name(name), profile(prof), anonymousProc("", nullptr)
+ProfileDocker::ProfileDocker(QString name, QWidget* parent) :
+	ads::CDockManager(parent), name(name), anonymousProc("", nullptr)
 {
 }
 
 ProfileDocker::~ProfileDocker()
 {
 	if(anonymousProc.second)
-		fftw_free(anonymousProc.second);
-	anonymousProc.second = nullptr;
+	{
+		if(anonymousProc.second->data)
+			fftw_free(anonymousProc.second->data);
+		anonymousProc.second->data = nullptr;
+	}
 }
 
 
@@ -41,33 +44,32 @@ void ProfileDocker::replot(double sc, bool traceNorm)
 			gradient.loadPreset(gradType);
 			radargram2ColorMap[plot]->setGradient(gradient);
 			auto mapData = radargram2ColorMap[plot]->data();
-			double *data;
+			std::shared_ptr<Profile> profile;
 			if(processingSteps.find(widget->objectName()) != processingSteps.end())
-				data = processingSteps[widget->objectName()];
+				profile = processingSteps[widget->objectName()];
 			else
-				data = anonymousProc.second;
+				profile = anonymousProc.second;
 
 			if(sc != scale || traceNorm != traceNormalization)
 			{
 				double *norm = nullptr;
 				if(traceNorm)
-					norm = profile.maxSamplePerTrace();
-				for(size_t i=0; i<profile.traces; i++)
-					for(size_t j=0; j<profile.samples; j++)
+					norm = profile->maxSamplePerTrace();
+				for(size_t i=0; i<profile->traces; i++)
+					for(size_t j=0; j<profile->samples; j++)
 					{
-						double cell = data[i*profile.samples+j];
+						double cell = profile->data[i*profile->samples+j];
 						if(norm)
 							mapData->setCell(i, j, cell/norm[i]);
 						else
 							mapData->setCell(i, j, cell);
-						std::cout << norm[i] << "\n";
 					}
 				radargram2ColorMap[plot]->rescaleDataRange(true);
 
-				for(size_t i=0; i<profile.traces; i++)
-					for(size_t j=0; j<profile.samples; j++)
+				for(size_t i=0; i<profile->traces; i++)
+					for(size_t j=0; j<profile->samples; j++)
 					{
-						double cell = data[i*profile.samples+j];
+						double cell = profile->data[i*profile->samples+j];
 						if(norm)
 							mapData->setCell(i, j, (cell/norm[i])*sc);
 						else

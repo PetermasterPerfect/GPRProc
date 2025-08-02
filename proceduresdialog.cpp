@@ -22,13 +22,12 @@ ProceduresDialog::ProceduresDialog(QTabWidget *tab, QWidget *parent)
     QWidget *radioWidget = new QWidget;
     radioWidget->setLayout(radioLayout);
 
-	setupStackedOptions();
-
 	procStepsCombo = new MyQComboBox;
 	int i=0;
 	for(auto &it : docker->processingSteps)
 		procStepsCombo->insertItem(i++, it.first);
 	
+	setupStackedOptions();
 
 	auto lineA = new QFrame;
 	lineA->setFrameShape(QFrame::HLine);
@@ -73,24 +72,25 @@ void ProceduresDialog::setupStackedOptions()
 
 QWidget* ProceduresDialog::createDcShiftPage()
 {
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
 	auto dcShiftPage = new QWidget;
 	auto layout = new QVBoxLayout;
-	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-	if (!docker)
-		return nullptr;
+	auto profile = getCurrentProcessing();
 
 	dcTimeWindow1 = new QDoubleSpinBox;
 	dcTimeWindow2 = new QDoubleSpinBox;
 
-	dcTimeWindow1->setRange(0, docker->profile.timeWindow);
+	dcTimeWindow1->setRange(0, profile->timeWindow);
 	dcTimeWindow1->setSingleStep(0.001);
 	dcTimeWindow1->setDecimals(3);
 	dcTimeWindow1->setValue(0);
 
-	dcTimeWindow2->setRange(0, docker->profile.timeWindow);
+	dcTimeWindow2->setRange(0, profile->timeWindow);
 	dcTimeWindow2->setSingleStep(0.001);
 	dcTimeWindow2->setDecimals(3);
-	dcTimeWindow2->setValue(docker->profile.timeWindow);
+	dcTimeWindow2->setValue(profile->timeWindow);
 
 	dcShiftPage->setLayout(layout);
 
@@ -126,20 +126,22 @@ QWidget* ProceduresDialog::createDcShiftPage()
 	layout->addLayout(hLayout3);
 
 	connect(applyButton, &QPushButton::clicked, this, [=](){
-			auto procFunc = std::any_cast<double* (Profile::*)(double, double, double*)>(procedur);
-			auto buf = (docker->profile.*procFunc)(dcTimeWindow1->value(), dcTimeWindow2->value(), getCurrentProcessing());
-			if(!buf)
+			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double)>(procedur);
+			auto profile = getCurrentProcessing();
+			auto proccessedProf = (profile.get()->*procFunc)(dcTimeWindow1->value(), dcTimeWindow2->value());
+			if(!proccessedProf)
 				return;
-			apply(docker, buf, getProcessingName(docker, procName));
+			apply(docker, proccessedProf, getProcessingName(docker, procName));
 			procButton->setFlat(false);
 			});
 
 	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-			auto procFunc = std::any_cast<double* (Profile::*)(double, double, double*)>(procedur);
-			auto buf = (docker->profile.*procFunc)(dcTimeWindow1->value(), dcTimeWindow2->value(), getCurrentProcessing());
-			if(!buf)
+			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double)>(procedur);
+			auto profile = getCurrentProcessing();
+			auto proccessedProf = (profile.get()->*procFunc)(dcTimeWindow1->value(), dcTimeWindow2->value());
+			if(!proccessedProf)
 				return;
-			applyProc(docker, buf, getProcessingName(docker, procName));
+			applyProc(docker, proccessedProf, getProcessingName(docker, procName));
 			procButton->setFlat(true);
 
 		});
@@ -156,13 +158,11 @@ QWidget* ProceduresDialog::createDewowPage()
 {
 	auto dewowPage = new QWidget;
 	auto layout = new QVBoxLayout;
-	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-	if(!docker)
-		return nullptr;
+	auto profile = getCurrentProcessing();
 
 	dewowTimeWindow1 = new QDoubleSpinBox;
-	dewowTimeWindow1->setRange(0, docker->profile.timeWindow);
-	dewowTimeWindow1->setValue(docker->profile.timeWindow);
+	dewowTimeWindow1->setRange(0, profile->timeWindow);
+	dewowTimeWindow1->setValue(profile->timeWindow);
 	dewowTimeWindow1->setSingleStep(0.001);
 	dewowTimeWindow1->setDecimals(3);
 	dewowPage->setLayout(layout);
@@ -196,7 +196,7 @@ QWidget* ProceduresDialog::createDewowPage()
 	return dewowPage;
 }
 
-double* ProceduresDialog::getCurrentProcessing()
+std::shared_ptr<Profile> ProceduresDialog::getCurrentProcessing()
 {
 	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
 	if(!docker)
@@ -250,35 +250,37 @@ void ProceduresDialog::onPopupUpdate()
 		procStepsCombo->insertItem(i++, it.first);
 }
 
-void ProceduresDialog::apply(ProfileDocker *docker, double *buf, QString name)
+void ProceduresDialog::apply(ProfileDocker *docker, std::shared_ptr<Profile> profile, QString name)
 {
-	applyBase(docker, buf, name);
+	applyBase(docker, profile, name);
 
 	if(docker->anonymousProc.second)
-		fftw_free(docker->anonymousProc.second);
-	docker->anonymousProc.second = buf;
+		if(docker->anonymousProc.second->data)
+			fftw_free(docker->anonymousProc.second->data);
+	docker->anonymousProc.second = profile;
 	docker->anonymousProc.first = name;
 }
 
-void ProceduresDialog::applyProc(ProfileDocker *docker, double *buf, QString name)
+void ProceduresDialog::applyProc(ProfileDocker *docker, std::shared_ptr<Profile> profile, QString name)
 {
-	applyBase(docker, buf, name);
+	applyBase(docker, profile, name);
 
 	if(docker->anonymousProc.second)
-	{
-		fftw_free(docker->anonymousProc.second);
-		docker->anonymousProc = std::make_pair("", nullptr);
-	}
+		if(docker->anonymousProc.second->data)
+		{
+			fftw_free(docker->anonymousProc.second->data);
+			docker->anonymousProc = std::make_pair("", nullptr);
+		}
 
-	docker->processingSteps[name] = buf;
+	docker->processingSteps[name] = profile;
 	//procStepsCombo->insertItem(procStepsCombo->count(), name);
 }
 
-void ProceduresDialog::applyBase(ProfileDocker *docker, double *buf, QString name)
+void ProceduresDialog::applyBase(ProfileDocker *docker, std::shared_ptr<Profile> profile, QString name)
 {
 	std::cout << "applyBase\n";
 	auto widget = docker->createDockWidget(name);
-	auto plotPair = docker->profile.createRadargram(buf, docker->gradType, docker->scale);
+	auto plotPair = profile->createRadargram(docker->gradType, docker->scale);
 	if(!plotPair.value().first)
 		return;
 

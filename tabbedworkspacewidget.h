@@ -16,7 +16,7 @@ public:
 	} MainWindowArea;
 
 	explicit TabbedWorkspaceWidget(QString name, QMainWindow* mainWin, QMainWindow* parent);
-	ProfileDocker* addTab(Profile);
+	ProfileDocker* addTab(std::shared_ptr<Profile>);
 	~TabbedWorkspaceWidget() override;
 
 	static TabbedWorkspaceWidget* getInstance(const QString& key);

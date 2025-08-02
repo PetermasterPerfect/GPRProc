@@ -12,20 +12,7 @@
 
 static const char *proceduresNames[] = {"Subtract DC-shif", "Subtract mean (dewow)"};
 
-class MyQComboBox : public QComboBox
-{
-    Q_OBJECT
-public:
-    MyQComboBox(QWidget *parent = nullptr) : QComboBox(parent) {}
-	void showPopup() 
-	{
-	  emit signalPopupShown();
-	  QComboBox::showPopup();
-	}
-signals:
-    void signalPopupShown();
 
-};
 
 class ProceduresDialog : public QDialog {
     Q_OBJECT
@@ -47,9 +34,9 @@ private:
 	TIMEWINDOW(dc, 2);
 	TIMEWINDOW(dewow, 1);
 
-	void apply(ProfileDocker*, double*, QString);
-	void applyProc(ProfileDocker*, double*, QString);
-	void applyBase(ProfileDocker*, double*, QString);
+	void apply(ProfileDocker*, std::shared_ptr<Profile>, QString);
+	void applyProc(ProfileDocker*, std::shared_ptr<Profile>, QString);
+	void applyBase(ProfileDocker*, std::shared_ptr<Profile>, QString);
 	void addProcessing(ProfileDocker*, QPushButton*);
 
 	void procDc();
@@ -57,7 +44,7 @@ private:
 	QWidget* createDewowPage();
 	void setupStackedOptions();
 	QString getProcessingName(ProfileDocker*, QLineEdit*);
-	double* getCurrentProcessing();
+	std::shared_ptr<Profile> getCurrentProcessing();
 
 	std::any procedur;
 };

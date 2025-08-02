@@ -10,7 +10,7 @@ TabbedWorkspaceWidget::TabbedWorkspaceWidget(QString name, QMainWindow* mainWin,
 	tabWidget->setTabsClosable(true);
 	//tabWidget->setMovable(true);
 	mainWindow->setCentralWidget(tabWidget);
-	addTab(Profile());
+	addTab(std::make_shared<Profile>());
 	connect(tabWidget, &QTabWidget::tabCloseRequested, this, &TabbedWorkspaceWidget::on_tabClose);
 }
 
@@ -27,20 +27,20 @@ void TabbedWorkspaceWidget::on_tabClose(int index)
 	tabWidget->removeTab(index);
 }
 
-ProfileDocker* TabbedWorkspaceWidget::addTab(Profile profile)
+ProfileDocker* TabbedWorkspaceWidget::addTab(std::shared_ptr<Profile> profile)
 {
-	auto path = tr(profile.path.c_str());
-	auto docker = new ProfileDocker(path, profile, tabWidget);
+	auto path = tr(profile->path.c_str());
+	auto docker = new ProfileDocker(path, tabWidget);
 	auto widget = docker->createDockWidget(path);
 	widget->setFeatures(widget->features() & 
 			~ads::CDockWidget::DockWidgetClosable & ~ads::CDockWidget::DockWidgetFloatable);
-	auto plotPair = docker->profile.createRadargram();
+	auto plotPair = profile->createRadargram();
 	if(!plotPair)
 		return nullptr;
 	widget->setWidget(plotPair.value().first);
 	docker->radargram2ColorMap.insert(plotPair.value());
 	docker->addDockWidget(ads::TopDockWidgetArea, widget);
-	docker->processingSteps[path] = docker->profile.data;
+	docker->processingSteps[path] = std::move(profile);
 	tabWidget->addTab(docker, path);
 	tabWidget->setCurrentWidget(docker);
 

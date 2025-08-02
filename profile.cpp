@@ -81,6 +81,21 @@ Profile::Profile(Profile&& prof)
 	init = true;
 }
 
+Profile::Profile(Profile *prof, double *buf)
+{
+	path = prof->path;
+	samples = prof->samples;
+	traces = prof->traces;
+	timeWindow = prof->timeWindow;
+	data = buf;
+
+	timeDomain = new double[samples];
+	for(unsigned i=0; i<samples; i++)
+		timeDomain[i] = prof->timeDomain[i];
+
+	init = true;
+}
+
 Profile::~Profile()
 {
 	if(data)
@@ -143,12 +158,10 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 	return wigglePlot;
 }
 
-std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(double *dt, QCPColorGradient::GradientPreset gradType, double scale)
+std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QCPColorGradient::GradientPreset gradType, double scale)
 {
 	if(!init)
 		return std::nullopt;
-	if(!dt)
-		dt = data;
 
 	QCustomPlot *imagePlot = new QCustomPlot();
 
@@ -163,7 +176,7 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(do
 	QCPColorMapData *mapData = new QCPColorMapData(traces, samples, *tracesRange, *samplesRange);
 	for(size_t i=1; i<=traces; i++)
 		for(size_t j=1; j<=samples; j++)
-			mapData->setData(i, j, dt[(i-1)*samples+(j-1)]*scale);
+			mapData->setData(i, j, data[(i-1)*samples+(j-1)]*scale);
 	QCPColorMap *map = new QCPColorMap(imagePlot->xAxis, imagePlot->yAxis);
 	map->setData(mapData);
 	map->setGradient(gradient);
@@ -334,14 +347,11 @@ double* Profile::maxSamplePerTrace()
 	return ret;
 }
 
-double* Profile::subtractDcShift(double t1, double t2, double *dt)
+std::shared_ptr<Profile> Profile::subtractDcShift(double t1, double t2)
 {
 	std::cout << "dc: " << t1 << "\n";
 	if(t1 < 0 || t2 < 0 || t1 > t2 | t1 > timeWindow || t2 > timeWindow)
-		return nullptr;
-	
-	if(!dt)
-		dt = data;
+		return std::shared_ptr<Profile>{};
 
 	double *filtered = fftw_alloc_real(samples*traces);
 	std::vector<double> samplesForMean, means;
@@ -365,21 +375,19 @@ double* Profile::subtractDcShift(double t1, double t2, double *dt)
 	for(size_t i=0; i<traces; i++)
 	{
 		for(size_t j=start; j<end; j++)
-			samplesForMean.push_back(dt[i*samples+j]);
+			samplesForMean.push_back(data[i*samples+j]);
 		means.push_back(std::accumulate(samplesForMean.begin(), samplesForMean.end(), 0.0)/samplesForMean.size());
 		samplesForMean.clear();
 	}
 
-
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
-			filtered[i*samples+j] = dt[i*samples+j]-means[i];
+			filtered[i*samples+j] = data[i*samples+j]-means[i];
 	
-	return filtered;
+	return std::make_shared<Profile>(this, filtered);
 }
 
-
-double* Profile::subtractDewow(double t1)
+std::shared_ptr<Profile> Profile::subtractDewow(double t1)
 {
 	std::cout << "dewow: " << t1 << "\n";
 }

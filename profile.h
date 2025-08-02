@@ -25,13 +25,14 @@ struct Profile
 	double *timeDomain = nullptr;
 
 	QCustomPlot* createWiggle(size_t, char type=0);
-	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(double *dt=nullptr, QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale, double scale=1);
-	double* subtractDcShift(double, double, double *dt=nullptr);
-	double* subtractDewow(double);
+	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale, double scale=1);
+	std::shared_ptr<Profile> subtractDcShift(double, double);
+	std::shared_ptr<Profile> subtractDewow(double);
 	double* maxSamplePerTrace();
 	Profile() {}
 	Profile(Profile&);
 	Profile(Profile&&);
+	Profile(Profile*, double*);
 	Profile(std::string);
 	~Profile();
 private:

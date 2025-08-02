@@ -18,6 +18,9 @@ MainWindow::MainWindow(char *fname)
 	
 	connect(mainTab->tabWidget, &QTabWidget::tabCloseRequested, this, [=]() {
 			wiggleViewAct->setChecked(false);
+			traceNormalizationAct->setChecked(false);
+			colorScaleAct->setChecked(false);
+
 			});
 
 	connect(mainTab->tabWidget, &QTabWidget::currentChanged, this, [=]() {
@@ -108,10 +111,16 @@ void MainWindow::removeWiggle(ProfileDocker *docker)
 }
 
 
-void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
+void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 {
 	auto container = new QWidget();
 	auto optionsContainer = new QWidget();
+	auto procStepsCombo = new MyQComboBox;
+	int i=0;
+	for(auto &it : docker->processingSteps)
+		procStepsCombo->insertItem(i++, it.first);
+	procStepsCombo->setCurrentIndex(idx);
+	
 	QHBoxLayout *layout = new QHBoxLayout(container);
 	QVBoxLayout *optionsLayout = new QVBoxLayout(optionsContainer);
 	QSpinBox *spinBox = new QSpinBox();
@@ -119,7 +128,8 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 	QRadioButton *amplitudeButton = new QRadioButton("amplitude");
 	QRadioButton *phaseButton = new QRadioButton("phase");
 	auto widget = docker->createDockWidget("Wiggle view");
-	auto wiggle = docker->profile.createWiggle(n, docker->wiggleType);
+	auto profile = docker->processingSteps[procStepsCombo->currentText()];
+	auto wiggle = profile->createWiggle(n, docker->wiggleType);
 	if(docker->wiggleType == 0)
 		currentButton->setChecked(true);
 	else if(docker->wiggleType == 1)
@@ -129,13 +139,14 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 
 	spinBox->setFixedWidth(200);
 	spinBox->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-	spinBox->setRange(1, docker->profile.traces);
+	spinBox->setRange(1, profile->traces);
 	spinBox->setValue(n);
 	wiggle->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	layout->setContentsMargins(5, 5, 5, 5);
 	layout->setSpacing(10);
 	layout->addWidget(optionsContainer, 0, Qt::AlignLeft | Qt::AlignTop);
 	layout->addWidget(wiggle);
+	optionsLayout->addWidget(procStepsCombo);
 	optionsLayout->addWidget(spinBox);
 	optionsLayout->addWidget(currentButton);
 	optionsLayout->addWidget(amplitudeButton);
@@ -148,14 +159,14 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 			});
 	connect(spinBox, &QSpinBox::valueChanged, this, [=](int i) {
 			removeWiggle(docker);
-			setUpWiggle(docker, i);
+			setUpWiggle(docker, i, procStepsCombo->currentIndex());
 			});
 
 	connect(currentButton, &QRadioButton::toggled, this, [=](bool checked) {
 			if(checked) {
 				docker->wiggleType = 0;
 				removeWiggle(docker);
-				setUpWiggle(docker, spinBox->value());
+				setUpWiggle(docker, spinBox->value(), procStepsCombo->currentIndex());
 			}
 			});
 
@@ -163,16 +174,31 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n)
 			if(checked) {
 				docker->wiggleType = 1;
 				removeWiggle(docker);
-				setUpWiggle(docker, spinBox->value());
+				setUpWiggle(docker, spinBox->value(), procStepsCombo->currentIndex());
 			}
 			});
 	connect(phaseButton, &QRadioButton::toggled, this, [=](bool checked) {
 			if(checked) {
 				docker->wiggleType = 2;
 				removeWiggle(docker);
-				setUpWiggle(docker, spinBox->value());
+				setUpWiggle(docker, spinBox->value(), procStepsCombo->currentIndex());
 			}
 			});
+
+	connect(procStepsCombo, &MyQComboBox::activated, this, [=](int idx) {
+			if(idx == -1)
+				return;
+			removeWiggle(docker);
+			setUpWiggle(docker, spinBox->value(), idx);
+			});
+	connect(procStepsCombo, &MyQComboBox::signalPopupShown, this, [=]() {
+		for(int i=procStepsCombo->count(); i>=0; i--)
+			procStepsCombo->removeItem(i);
+
+		int i=0;
+		for(auto &it : docker->processingSteps)
+			procStepsCombo->insertItem(i++, it.first);}
+			);
 	docker->wiggle = true;
 }
 
@@ -301,6 +327,6 @@ void MainWindow::onOpenFile()
 	if(!filename.length())
 		return;
 
-	Profile prof(filename.toStdString());
-	mainTab->addTab(std::move(prof));
+	std::shared_ptr<Profile> prof = std::make_shared<Profile>(filename.toStdString());
+	mainTab->addTab(prof);
 }

@@ -5,15 +5,29 @@
 #include "DockManager.h"
 #include "profile.h"
 
+class MyQComboBox : public QComboBox
+{
+    Q_OBJECT
+public:
+    MyQComboBox(QWidget *parent = nullptr) : QComboBox(parent) {}
+	void showPopup() 
+	{
+	  emit signalPopupShown();
+	  QComboBox::showPopup();
+	}
+signals:
+    void signalPopupShown();
+
+};
+
 class ProfileDocker : public ads::CDockManager
 {
 	Q_OBJECT
 
 public:
-	ProfileDocker(QString name, Profile& prof, QWidget* parent = nullptr);
+	ProfileDocker(QString name, QWidget* parent = nullptr);
 	~ProfileDocker();
 
-	Profile profile;
 	bool wiggle = false;
 	char wiggleType = 0;
 	bool traceNormalization = false;
@@ -21,8 +35,8 @@ public:
 	double scale = 1;
 	QCPColorGradient::GradientPreset gradType = QCPColorGradient::gpGrayscale;
 	std::map<QCustomPlot*, QCPColorMap*> radargram2ColorMap;
-	std::map<QString, double*> processingSteps;
-	std::pair<QString, double*> anonymousProc;
+	std::map<QString, std::shared_ptr<Profile>> processingSteps;
+	std::pair<QString, std::shared_ptr<Profile>> anonymousProc;
 
 	void replot();
 	void replot(double);

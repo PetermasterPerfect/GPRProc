@@ -41,7 +41,7 @@ private:
     void createMenus();
 	void createToolbar();
 	void removeWiggle(ProfileDocker*);
-	void setUpWiggle(ProfileDocker*, size_t);
+	void setUpWiggle(ProfileDocker*, size_t, int idx=0);
 	void showpProceduresDialog();
 
 	TabbedWorkspaceWidget *mainTab;
