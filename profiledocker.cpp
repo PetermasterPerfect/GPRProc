@@ -16,10 +16,20 @@ ProfileDocker::~ProfileDocker()
 
 void ProfileDocker::replot()
 {
-	replot(scale);
+	replot(scale, traceNormalization);
 }
 
 void ProfileDocker::replot(double sc)
+{
+	replot(sc, traceNormalization);
+}
+
+void ProfileDocker::replot(bool traceNorm)
+{
+	replot(scale, traceNorm);
+}
+
+void ProfileDocker::replot(double sc, bool traceNorm)
 {
 	for(auto widget : dockWidgets())
 	{
@@ -31,16 +41,31 @@ void ProfileDocker::replot(double sc)
 			gradient.loadPreset(gradType);
 			radargram2ColorMap[plot]->setGradient(gradient);
 			auto mapData = radargram2ColorMap[plot]->data();
-			std::cout << "key: " << mapData->keySize() << "\n";
-			std::cout << "value: " << mapData->valueSize() << "\n";
-			if(sc != scale)
+			double *data;
+			if(processingSteps.find(widget->objectName()) != processingSteps.end())
+				data = processingSteps[widget->objectName()];
+			else
+				data = anonymousProc.second;
+
+			if(sc != scale || traceNorm != traceNormalization)
 			{
+				double *norm = traceNorm ? profile.maxSamplePerTrace() : new double[profile.traces]{};
 				for(size_t i=0; i<profile.traces; i++)
 					for(size_t j=0; j<profile.samples; j++)
 					{
-						double cell = profile.data[i*profile.samples+j];
-						mapData->setCell(i, j, cell*sc);
+						double cell = data[i*profile.samples+j];
+						mapData->setCell(i, j, cell-norm[i]);
 					}
+				radargram2ColorMap[plot]->rescaleDataRange(true);
+
+				for(size_t i=0; i<profile.traces; i++)
+					for(size_t j=0; j<profile.samples; j++)
+					{
+						double cell = data[i*profile.samples+j];
+						mapData->setCell(i, j, (cell-norm[i])*sc);
+					}
+
+				delete[] norm;
 			}
 			plot->replot();
 		}
@@ -48,6 +73,7 @@ void ProfileDocker::replot(double sc)
 	}
 
 	scale = sc;
+	traceNormalization = traceNorm;
 	std::cout << "---------\n";
 }
 

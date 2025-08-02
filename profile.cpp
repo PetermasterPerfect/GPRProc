@@ -168,6 +168,8 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(do
 	map->setData(mapData);
 	map->setGradient(gradient);
 	map->rescaleDataRange();
+	map->setInterpolate(false);
+	map->setTightBoundary(false);
 	imagePlot->rescaleAxes();
 	imagePlot->replot();
 	delete samplesRange;
@@ -323,12 +325,23 @@ void Profile::read_rad(std::string name)
 	in.close();
 }
 
+double* Profile::maxSamplePerTrace()
+{
+	double *ret = new double[traces]{};
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=0; j<samples; j++)
+			ret[i] =  data[i*samples+j] > ret[i] ? data[i*samples+j] : ret[i];
+	return ret;
+}
 
-double* Profile::subtractDcShift(double t1, double t2)
+double* Profile::subtractDcShift(double t1, double t2, double *dt)
 {
 	std::cout << "dc: " << t1 << "\n";
 	if(t1 < 0 || t2 < 0 || t1 > t2 | t1 > timeWindow || t2 > timeWindow)
 		return nullptr;
+	
+	if(!dt)
+		dt = data;
 
 	double *filtered = fftw_alloc_real(samples*traces);
 	std::vector<double> samplesForMean, means;
@@ -352,7 +365,7 @@ double* Profile::subtractDcShift(double t1, double t2)
 	for(size_t i=0; i<traces; i++)
 	{
 		for(size_t j=start; j<end; j++)
-			samplesForMean.push_back(data[i*samples+j]);
+			samplesForMean.push_back(dt[i*samples+j]);
 		means.push_back(std::accumulate(samplesForMean.begin(), samplesForMean.end(), 0.0)/samplesForMean.size());
 		samplesForMean.clear();
 	}
@@ -360,7 +373,7 @@ double* Profile::subtractDcShift(double t1, double t2)
 
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
-			filtered[i*samples+j] = data[i*samples+j]-means[i];
+			filtered[i*samples+j] = dt[i*samples+j]-means[i];
 	
 	return filtered;
 }

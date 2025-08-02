@@ -16,14 +16,17 @@ public:
 	Profile profile;
 	bool wiggle = false;
 	char wiggleType = 0;
+	bool traceNormalization = false;
+	double scale = 1;
 	QCPColorGradient::GradientPreset gradType = QCPColorGradient::gpGrayscale;
 	std::map<QCustomPlot*, QCPColorMap*> radargram2ColorMap;
 	std::map<QString, double*> processingSteps;
 	std::pair<QString, double*> anonymousProc;
-	double scale = 1;
 
 	void replot();
 	void replot(double);
+	void replot(bool);
+	void replot(double, bool);
 	void removeColorMap(QCustomPlot*);
 private:
 	QString name;

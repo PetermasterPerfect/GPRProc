@@ -7,54 +7,68 @@ ProceduresDialog::ProceduresDialog(QTabWidget *tab, QWidget *parent)
     : tabWidget(tab), QDialog(parent)
 {
     setWindowTitle("Procedures");
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if (!docker)
+		return;
+
     QVBoxLayout *radioLayout = new QVBoxLayout;
 	for(int i=0; i<proceduresRadios.size(); i++)
 	{
 		proceduresRadios[i] = new QRadioButton(proceduresNames[i]);
 		radioLayout->addWidget(proceduresRadios[i]);
 	}
-	proceduresRadios[0]->setChecked(true); //dc shift
+	proceduresRadios[0]->setChecked(true); //dc-shift radio button
 	
     QWidget *radioWidget = new QWidget;
     radioWidget->setLayout(radioLayout);
 
-
-
 	setupStackedOptions();
+
+	procStepsCombo = new MyQComboBox;
+	int i=0;
+	for(auto &it : docker->processingSteps)
+		procStepsCombo->insertItem(i++, it.first);
+	
 
 	auto lineA = new QFrame;
 	lineA->setFrameShape(QFrame::HLine);
 	lineA->setFrameShadow(QFrame::Sunken);
+
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->addWidget(radioWidget);
+mainLayout->addWidget(radioWidget);
+    mainLayout->addWidget(procStepsCombo);
 	mainLayout->addWidget(lineA);
     mainLayout->addWidget(stack);
 
 	procedur = &Profile::subtractDcShift;
 
-	    // Connect signals
+	connect(procStepsCombo, &MyQComboBox::signalPopupShown, this, &ProceduresDialog::onPopupUpdate);
     connect(proceduresRadios[0], &QRadioButton::toggled, this, &ProceduresDialog::onDcShift);
     connect(proceduresRadios[1], &QRadioButton::toggled, this, &ProceduresDialog::onDewow);
 	connect(tabWidget, &QTabWidget::currentChanged, this, [=]() {
+				onPopupUpdate();
 				while(stack->count())
 					stack->removeWidget(stack->currentWidget());
 				setupStackedOptions();
 				mainLayout->removeWidget(stack);
 				mainLayout->addWidget(stack);
 
-				for(auto &radio : proceduresRadios)
-					if(radio->isChecked())
+				for(int i=0; i<proceduresRadios.size(); i++)
+					if(proceduresRadios[i]->isChecked())
+					{
+						stack->setCurrentIndex(i);
 						break;
+					}
 			});
 }
 
 void ProceduresDialog::setupStackedOptions()
 {
 	QWidget *dcShiftPage = createDcShiftPage();
-    //QWidget *dewowPage = createDewowPage();
+    QWidget *dewowPage = createDewowPage();
     stack = new QStackedWidget;
     stack->addWidget(dcShiftPage);
-    //stack->addWidget(dewowPage);
+    stack->addWidget(dewowPage);
 }
 
 QWidget* ProceduresDialog::createDcShiftPage()
@@ -112,8 +126,8 @@ QWidget* ProceduresDialog::createDcShiftPage()
 	layout->addLayout(hLayout3);
 
 	connect(applyButton, &QPushButton::clicked, this, [=](){
-			auto procFunc = std::any_cast<double* (Profile::*)(double, double)>(procedur);
-			auto buf = (docker->profile.*procFunc)(dcTimeWindow1->value(), dcTimeWindow2->value());
+			auto procFunc = std::any_cast<double* (Profile::*)(double, double, double*)>(procedur);
+			auto buf = (docker->profile.*procFunc)(dcTimeWindow1->value(), dcTimeWindow2->value(), getCurrentProcessing());
 			if(!buf)
 				return;
 			apply(docker, buf, getProcessingName(docker, procName));
@@ -121,8 +135,8 @@ QWidget* ProceduresDialog::createDcShiftPage()
 			});
 
 	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-			auto procFunc = std::any_cast<double* (Profile::*)(double, double)>(procedur);
-			auto buf = (docker->profile.*procFunc)(dcTimeWindow1->value(), dcTimeWindow2->value());
+			auto procFunc = std::any_cast<double* (Profile::*)(double, double, double*)>(procedur);
+			auto buf = (docker->profile.*procFunc)(dcTimeWindow1->value(), dcTimeWindow2->value(), getCurrentProcessing());
 			if(!buf)
 				return;
 			applyProc(docker, buf, getProcessingName(docker, procName));
@@ -137,62 +151,6 @@ QWidget* ProceduresDialog::createDcShiftPage()
 	return dcShiftPage;
 }
 
-
-void ProceduresDialog::apply(ProfileDocker *docker, double *buf, QString name)
-{
-	applyBase(docker, buf, name);
-
-	if(docker->anonymousProc.second)
-		fftw_free(docker->anonymousProc.second);
-	docker->anonymousProc.second = buf;
-	docker->anonymousProc.first = name;
-}
-
-
-void ProceduresDialog::applyProc(ProfileDocker *docker, double *buf, QString name)
-{
-	applyBase(docker, buf, name);
-
-	if(docker->anonymousProc.second)
-	{
-		fftw_free(docker->anonymousProc.second);
-		docker->anonymousProc = std::make_pair("", nullptr);
-	}
-
-	docker->processingSteps[name] = buf;
-}
-
-void ProceduresDialog::applyBase(ProfileDocker *docker, double *buf, QString name)
-{
-	std::cout << "applyBase\n";
-	auto widget = docker->createDockWidget(name);
-	auto plotPair = docker->profile.createRadargram(buf, docker->gradType, docker->scale);
-	if(!plotPair.value().first)
-		return;
-
-	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
-			std::cout << "close plot2\n";
-			docker->removeDockWidget(widget);
-			docker->removeColorMap(plotPair.value().first);
-		});
-	widget->setWidget(plotPair.value().first);
-	docker->radargram2ColorMap.insert(plotPair.value());
-	docker->addDockWidget(ads::BottomDockWidgetArea, widget);
-}
-
-
-void ProceduresDialog::addProcessing(ProfileDocker *docker, QPushButton *procButton)
-{
-	std::cout << "addprocessing\n";	
-	if(procButton->isFlat())
-		return;
-	if(docker->anonymousProc.second)
-	{
-		docker->processingSteps.insert(docker->anonymousProc);
-		docker->anonymousProc = std::make_pair("", nullptr);
-	}
-	procButton->setFlat(true);
-}
 
 QWidget* ProceduresDialog::createDewowPage()
 {
@@ -238,6 +196,14 @@ QWidget* ProceduresDialog::createDewowPage()
 	return dewowPage;
 }
 
+double* ProceduresDialog::getCurrentProcessing()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	return docker->processingSteps[procStepsCombo->currentText()];
+}
+
 QString ProceduresDialog::getProcessingName(ProfileDocker* docker, QLineEdit *procName)
 {
 	auto txt = procName->text();
@@ -249,7 +215,6 @@ QString ProceduresDialog::getProcessingName(ProfileDocker* docker, QLineEdit *pr
 
 }
 
-
 void ProceduresDialog::onDcShift(bool checked) 
 {
     if (checked)
@@ -259,15 +224,85 @@ void ProceduresDialog::onDcShift(bool checked)
 		if(!docker)
 			return;
 		procedur = &Profile::subtractDcShift;
-
 	}
 }
 
-void ProceduresDialog::onDewow(bool checked) {
+void ProceduresDialog::onDewow(bool checked) 
+{
     if (checked)
         stack->setCurrentIndex(1);
 		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
 		if(!docker)
 			return;
 		procedur = &Profile::subtractDcShift;
+}
+
+void ProceduresDialog::onPopupUpdate()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return;
+	for(int i=procStepsCombo->count(); i>=0; i--)
+		procStepsCombo->removeItem(i);
+
+	int i=0;
+	for(auto &it : docker->processingSteps)
+		procStepsCombo->insertItem(i++, it.first);
+}
+
+void ProceduresDialog::apply(ProfileDocker *docker, double *buf, QString name)
+{
+	applyBase(docker, buf, name);
+
+	if(docker->anonymousProc.second)
+		fftw_free(docker->anonymousProc.second);
+	docker->anonymousProc.second = buf;
+	docker->anonymousProc.first = name;
+}
+
+void ProceduresDialog::applyProc(ProfileDocker *docker, double *buf, QString name)
+{
+	applyBase(docker, buf, name);
+
+	if(docker->anonymousProc.second)
+	{
+		fftw_free(docker->anonymousProc.second);
+		docker->anonymousProc = std::make_pair("", nullptr);
+	}
+
+	docker->processingSteps[name] = buf;
+	//procStepsCombo->insertItem(procStepsCombo->count(), name);
+}
+
+void ProceduresDialog::applyBase(ProfileDocker *docker, double *buf, QString name)
+{
+	std::cout << "applyBase\n";
+	auto widget = docker->createDockWidget(name);
+	auto plotPair = docker->profile.createRadargram(buf, docker->gradType, docker->scale);
+	if(!plotPair.value().first)
+		return;
+
+	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
+			std::cout << "close plot2\n";
+			docker->removeDockWidget(widget);
+			docker->removeColorMap(plotPair.value().first);
+		});
+	widget->setWidget(plotPair.value().first);
+	docker->radargram2ColorMap.insert(plotPair.value());
+	docker->addDockWidget(ads::BottomDockWidgetArea, widget);
+}
+
+
+void ProceduresDialog::addProcessing(ProfileDocker *docker, QPushButton *procButton)
+{
+	std::cout << "addprocessing\n";	
+	if(procButton->isFlat())
+		return;
+	if(docker->anonymousProc.second)
+	{
+		//procStepsCombo->insertItem(procStepsCombo->count(), docker->anonymousProc.first);
+		docker->processingSteps.insert(docker->anonymousProc);
+		docker->anonymousProc = std::make_pair("", nullptr);
+	}
+	procButton->setFlat(true);
 }

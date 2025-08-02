@@ -14,7 +14,7 @@ MainWindow::MainWindow(char *fname)
 
     setWindowTitle(tr("Menus"));
     setMinimumSize(160, 160);
-    resize(480, 320);
+    resize(880, 520);
 	
 	connect(mainTab->tabWidget, &QTabWidget::tabCloseRequested, this, [=]() {
 			wiggleViewAct->setChecked(false);
@@ -25,6 +25,7 @@ MainWindow::MainWindow(char *fname)
 			if(!docker)
 				return;
 			wiggleViewAct->setChecked(docker->wiggle);
+			traceNormalizationAct->setChecked(docker->traceNormalization);
 			for(auto &color : gradientMap)
 				if(color.second == docker->gradType)
 				{
@@ -66,18 +67,25 @@ void MainWindow::redo()
                "menu-bar menus and context menus."));
 }
 
+
+void MainWindow::traceNormalization()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+	if(!docker)
+		return;
+
+	docker->replot((bool)(docker->traceNormalization ^ true));
+}
+
 void MainWindow::wiggleView()
 {
 	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
 	if(!docker)
 		return;
 	if(docker->wiggle)
-	{
 		removeWiggle(docker);
-		return;
-	}
-
-	setUpWiggle(docker, 1);
+	else
+		setUpWiggle(docker, 1);
 }
 
 void MainWindow::removeWiggle(ProfileDocker *docker)
@@ -198,6 +206,11 @@ void MainWindow::createActions()
 	wiggleViewAct->setCheckable(true);
     connect(wiggleViewAct, &QAction::triggered, this, &MainWindow::wiggleView);
 
+    traceNormalizationAct = new QAction(tr("&Trace Normalization"), this);
+    traceNormalizationAct->setStatusTip(tr("Apply trace normalization"));
+	traceNormalizationAct->setCheckable(true);
+    connect(traceNormalizationAct, &QAction::triggered, this, &MainWindow::traceNormalization);
+
     proceduresAct = new QAction(tr("&Procedures"), this);
     connect(proceduresAct, &QAction::triggered, this, &MainWindow::showpProceduresDialog);
 
@@ -218,12 +231,10 @@ void MainWindow::createMenus()
     
 	viewMenu = menuBar()->addMenu(tr("&View"));
 	viewMenu->addAction(wiggleViewAct);
-
+	viewMenu->addAction(traceNormalizationAct);
 
 	processingMenu = menuBar()->addMenu(tr("&Processing"));
 	processingMenu->addAction(proceduresAct);
-    //editMenu->addAction(undoAct);
-
 }
 
 
