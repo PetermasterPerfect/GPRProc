@@ -37,7 +37,10 @@ void ProfileDocker::replot(double sc, bool traceNorm)
 	for(auto widget : dockWidgets())
 	{
 
-		std::cout << "widgets iter\n";
+		if(widget == wiggle)
+			continue;
+
+		std::cout << "widgets iter: " << widget->objectName().toStdString() << "\n";
 		if(auto plot = dynamic_cast<QCustomPlot*>(widget->widget()))
 		{
 			QCPColorGradient gradient;

@@ -33,6 +33,7 @@ private:
 	TIMEWINDOW(dc, 1);
 	TIMEWINDOW(dc, 2);
 	TIMEWINDOW(dewow, 1);
+	std::any procedur;
 
 	void apply(ProfileDocker*, std::shared_ptr<Profile>, QString);
 	void applyProc(ProfileDocker*, std::shared_ptr<Profile>, QString);
@@ -45,7 +46,5 @@ private:
 	void setupStackedOptions();
 	QString getProcessingName(ProfileDocker*, QLineEdit*);
 	std::shared_ptr<Profile> getCurrentProcessing();
-
-	std::any procedur;
 };
 #endif

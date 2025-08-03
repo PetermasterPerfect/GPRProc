@@ -156,6 +156,9 @@ QWidget* ProceduresDialog::createDcShiftPage()
 
 QWidget* ProceduresDialog::createDewowPage()
 {
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
 	auto dewowPage = new QWidget;
 	auto layout = new QVBoxLayout;
 	auto profile = getCurrentProcessing();
@@ -192,6 +195,31 @@ QWidget* ProceduresDialog::createDewowPage()
 	hLayout2->addWidget(applyProcButton);
 	hLayout2->addWidget(procButton);
 	layout->addLayout(hLayout2);
+
+	connect(applyButton, &QPushButton::clicked, this, [=](){
+			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double)>(procedur);
+			auto profile = getCurrentProcessing();
+			auto proccessedProf = (profile.get()->*procFunc)(dewowTimeWindow1->value());
+			if(!proccessedProf)
+				return;
+			apply(docker, proccessedProf, getProcessingName(docker, procName));
+			procButton->setFlat(false);
+			});
+
+	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double)>(procedur);
+			auto profile = getCurrentProcessing();
+			auto proccessedProf = (profile.get()->*procFunc)(dewowTimeWindow1->value());
+			if(!proccessedProf)
+				return;
+			applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+			procButton->setFlat(true);
+
+		});
+
+	connect(procButton, &QPushButton::clicked, this, [=]() {
+			addProcessing(docker, procButton);
+		});
 
 	return dewowPage;
 }
@@ -230,11 +258,13 @@ void ProceduresDialog::onDcShift(bool checked)
 void ProceduresDialog::onDewow(bool checked) 
 {
     if (checked)
+	{
         stack->setCurrentIndex(1);
 		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
 		if(!docker)
 			return;
-		procedur = &Profile::subtractDcShift;
+		procedur = &Profile::subtractDewow;
+	}
 }
 
 void ProceduresDialog::onPopupUpdate()
@@ -254,9 +284,6 @@ void ProceduresDialog::apply(ProfileDocker *docker, std::shared_ptr<Profile> pro
 {
 	applyBase(docker, profile, name);
 
-	if(docker->anonymousProc.second)
-		if(docker->anonymousProc.second->data)
-			fftw_free(docker->anonymousProc.second->data);
 	docker->anonymousProc.second = profile;
 	docker->anonymousProc.first = name;
 }
@@ -265,13 +292,7 @@ void ProceduresDialog::applyProc(ProfileDocker *docker, std::shared_ptr<Profile>
 {
 	applyBase(docker, profile, name);
 
-	if(docker->anonymousProc.second)
-		if(docker->anonymousProc.second->data)
-		{
-			fftw_free(docker->anonymousProc.second->data);
-			docker->anonymousProc = std::make_pair("", nullptr);
-		}
-
+	docker->anonymousProc = std::make_pair("", nullptr);
 	docker->processingSteps[name] = profile;
 	//procStepsCombo->insertItem(procStepsCombo->count(), name);
 }

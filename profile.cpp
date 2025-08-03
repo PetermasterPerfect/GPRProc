@@ -107,13 +107,10 @@ Profile::~Profile()
 	timeDomain = nullptr;
 }
 
-QCustomPlot* Profile::createWiggle(size_t n, char type)
-{
-	if(!init)
-		return nullptr;
 
+std::pair<QVector<double>, QVector<double>> Profile::prepareWiggleData(size_t n, char type)
+{
 	QVector<double> x(samples), y(samples);
-	QCustomPlot *wigglePlot = new QCustomPlot();
 	switch(type)
 	{
 	case 0: // trace
@@ -132,8 +129,6 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 			trace[i] = data[(n-1)*samples+i];
 
 		p = fftw_plan_dft_r2c_1d(samples, trace, fourier, FFTW_ESTIMATE);
-		if(!fourier)
-			return nullptr;
 		fftw_execute(p);
 		for (int i=0; i<samples/2; ++i)
 		{
@@ -149,8 +144,19 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 		break;
 	}
 
+	return std::make_pair(x, y);
+}
+
+QCustomPlot* Profile::createWiggle(size_t n, char type)
+{
+	if(!init)
+		return nullptr;
+
+	QCustomPlot *wigglePlot = new QCustomPlot();
+	auto wiggleData = prepareWiggleData(n, type);
+
 	wigglePlot->addGraph();
-	wigglePlot->graph(0)->setData(x, y);
+	wigglePlot->graph(0)->setData(wiggleData.first, wiggleData.second);
 	wigglePlot->xAxis->setLabel("x");
 	wigglePlot->yAxis->setLabel("y");
 	wigglePlot->rescaleAxes();
@@ -354,7 +360,7 @@ std::shared_ptr<Profile> Profile::subtractDcShift(double t1, double t2)
 		return std::shared_ptr<Profile>{};
 
 	double *filtered = fftw_alloc_real(samples*traces);
-	std::vector<double> samplesForMean, means;
+	std::vector<double> means;
 	size_t start, end;
 	bool fs, fe;
 	fs = fe = false;
@@ -374,10 +380,10 @@ std::shared_ptr<Profile> Profile::subtractDcShift(double t1, double t2)
 
 	for(size_t i=0; i<traces; i++)
 	{
+		double mean = 0;
 		for(size_t j=start; j<end; j++)
-			samplesForMean.push_back(data[i*samples+j]);
-		means.push_back(std::accumulate(samplesForMean.begin(), samplesForMean.end(), 0.0)/samplesForMean.size());
-		samplesForMean.clear();
+			mean += data[i*samples+j];
+		means.push_back(mean/(end-start));
 	}
 
 	for(size_t i=0; i<traces; i++)
@@ -389,5 +395,33 @@ std::shared_ptr<Profile> Profile::subtractDcShift(double t1, double t2)
 
 std::shared_ptr<Profile> Profile::subtractDewow(double t1)
 {
-	std::cout << "dewow: " << t1 << "\n";
+	if(t1 < 0 || t1 > timeWindow)
+		return std::shared_ptr<Profile>{};
+	if(t1 <= timeWindow/samples)
+		return std::make_shared<Profile>(this, data);
+	double *filtered = fftw_alloc_real(samples*traces);
+	size_t windowSize;
+	size_t buf = lround(t1/(timeWindow/samples));
+	windowSize = buf%2 ? buf : buf-1;
+	if(windowSize == 1)
+	{
+		fftw_free(filtered);
+		return std::make_shared<Profile>(this, data);
+	}
+
+	for(size_t i=0; i<traces; i++)
+	{
+		for(size_t j=0; j<samples; j++)
+		{
+			double mean = 0;
+			size_t start = j-windowSize/2 < 0 ? 0 : j-windowSize/2;
+			size_t end = j+windowSize/2 >= samples ? samples-1 : j+windowSize/2;
+			for(size_t k=start; k<end; k++)
+				mean += data[i*samples+k];
+			mean /= end-start;
+			filtered[i*samples+j] = data[i*samples+j]-mean;
+		}
+	}
+
+	return std::make_shared<Profile>(this, filtered);
 }

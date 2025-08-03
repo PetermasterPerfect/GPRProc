@@ -28,7 +28,7 @@ public:
 	ProfileDocker(QString name, QWidget* parent = nullptr);
 	~ProfileDocker();
 
-	bool wiggle = false;
+	ads::CDockWidget* wiggle = nullptr;
 	char wiggleType = 0;
 	bool traceNormalization = false;
 	bool colorScale = false;

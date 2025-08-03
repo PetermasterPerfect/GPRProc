@@ -103,16 +103,18 @@ void MainWindow::wiggleView()
 
 void MainWindow::removeWiggle(ProfileDocker *docker)
 {
-	auto widget = docker->findDockWidget("Wiggle view");
-	if(widget)
-		docker->removeDockWidget(widget);
-	docker->wiggle = false;
+	if(docker->wiggle)
+	{
+		docker->removeDockWidget(docker->wiggle);
+		docker->wiggle = nullptr;
+	}
 	wiggleViewAct->setChecked(false);
 }
 
 
 void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 {
+	// TODO: clean up this mess
 	auto container = new QWidget();
 	auto optionsContainer = new QWidget();
 	auto procStepsCombo = new MyQComboBox;
@@ -127,7 +129,28 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 	QRadioButton *currentButton = new QRadioButton("current");
 	QRadioButton *amplitudeButton = new QRadioButton("amplitude");
 	QRadioButton *phaseButton = new QRadioButton("phase");
-	auto widget = docker->createDockWidget("Wiggle view");
+	ads::CDockWidget *widget;
+	if(docker->wiggle)
+	{
+		for(auto &child : docker->wiggle->widget()->children())
+		if(auto plot = dynamic_cast<QCustomPlot*>(child))
+		{
+			widget = docker->wiggle;
+			plot->clearItems();
+
+			auto profile = docker->processingSteps[procStepsCombo->currentText()];
+			auto wiggleData = profile->prepareWiggleData(n, docker->wiggleType);
+			plot->graph(0)->setData(wiggleData.first, wiggleData.second);
+			plot->rescaleAxes();
+			plot->replot();
+			return;
+		}
+	}
+	else
+	{
+		widget = docker->createDockWidget("Wiggle view");
+		docker->wiggle = widget;
+	}
 	auto profile = docker->processingSteps[procStepsCombo->currentText()];
 	auto wiggle = profile->createWiggle(n, docker->wiggleType);
 	if(docker->wiggleType == 0)
@@ -155,10 +178,10 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 	docker->addDockWidget(ads::TopDockWidgetArea, widget);
 	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
 			wiggleViewAct->setChecked(false);
-			docker->wiggle = false;
+			docker->wiggle = nullptr;
 			});
 	connect(spinBox, &QSpinBox::valueChanged, this, [=](int i) {
-			removeWiggle(docker);
+			//removeWiggle(docker);
 			setUpWiggle(docker, i, procStepsCombo->currentIndex());
 			});
 
@@ -199,7 +222,6 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 		for(auto &it : docker->processingSteps)
 			procStepsCombo->insertItem(i++, it.first);}
 			);
-	docker->wiggle = true;
 }
 
 void MainWindow::createActions()
