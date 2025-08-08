@@ -39,7 +39,12 @@ Profile::Profile(std::string p): path(p)
 		//load dt1
 	else
 		std::cout << "Unsupport extension\n";
-	
+	picks = naivePicking();
+std::cout << "Samples: " << samples << " , traces: " << traces << ", timewindow: " << timeWindow << ", sample time: " << timeWindow/samples << "\n"; 
+
+	for(size_t i=0; i<marks.size(); i++)
+		std::cout << marks[i] << " ";
+	std::cout << "\n";
 	init = true;
 }
 
@@ -61,6 +66,13 @@ Profile::Profile(Profile& prof)
 	for(unsigned i=0; i<samples; i++)
 		timeDomain[i] = prof.timeDomain[i];
 
+	picks = new size_t[samples];
+	for(unsigned i=0; i<samples; i++)
+		picks[i] = prof.picks[i];
+
+	marks = prof.marks;
+
+
 	init = true;
 }
 
@@ -77,6 +89,10 @@ Profile::Profile(Profile&& prof)
 	prof.data = nullptr;
 	timeDomain = prof.timeDomain;
 	prof.timeDomain = nullptr;
+	picks = prof.picks;
+	prof.picks = nullptr;
+
+	marks = prof.marks;
 
 	init = true;
 }
@@ -105,8 +121,11 @@ Profile::~Profile()
 	if(timeDomain)
 		delete[] timeDomain;
 	timeDomain = nullptr;
-}
 
+	if(picks)
+		delete[] picks;
+	picks = nullptr;
+}
 
 std::pair<QVector<double>, QVector<double>> Profile::prepareWiggleData(size_t n, char type)
 {
@@ -159,7 +178,21 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 	wigglePlot->graph(0)->setData(wiggleData.first, wiggleData.second);
 	wigglePlot->xAxis->setLabel("x");
 	wigglePlot->yAxis->setLabel("y");
-	wigglePlot->rescaleAxes();
+
+	QCPGraph *marker = wigglePlot->addGraph();
+	marker->addData(picks[n], data[n*samples+picks[n]]);
+	marker->setLineStyle(QCPGraph::lsNone);
+	marker->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 10));
+	marker->setPen(QPen(Qt::red));
+
+	QCPScatterStyle myScatter;
+	myScatter.setShape(QCPScatterStyle::ssCircle);
+	myScatter.setPen(QPen(Qt::blue));
+	myScatter.setBrush(Qt::white);
+	myScatter.setSize(5);
+	wigglePlot->graph(0)->setScatterStyle(myScatter);
+	wigglePlot->graph(0)->rescaleAxes();
+	wigglePlot->graph(1)->rescaleAxes(true);
 	wigglePlot->replot();
 	return wigglePlot;
 }
@@ -180,9 +213,10 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QC
 	QCPColorGradient gradient;
 	gradient.loadPreset(gradType);
 	QCPColorMapData *mapData = new QCPColorMapData(traces, samples, *tracesRange, *samplesRange);
-	for(size_t i=1; i<=traces; i++)
-		for(size_t j=1; j<=samples; j++)
-			mapData->setData(i, j, data[(i-1)*samples+(j-1)]*scale);
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=0; j<samples; j++)
+			mapData->setData(i, j, data[i*samples+j]*scale);
+
 	QCPColorMap *map = new QCPColorMap(imagePlot->xAxis, imagePlot->yAxis);
 	map->setData(mapData);
 	map->setGradient(gradient);
@@ -229,6 +263,33 @@ void Profile::open_gssi(std::string name, uint16_t channel)
 	}
 	else if(hdr.rh_bits == 32)
 		read_typed_data<uint32_t>(in, sz);
+
+
+	std::ifstream inDzx = open_both_cases(name, ".DZX"); 
+	if(inDzx)
+	{
+		std::cerr << "NOT IMPLEMENTED\n";
+	}
+	else
+	{
+		double max = 0;
+		for(size_t i=0; i<traces; i++)
+			if(fabs(data[i*samples+1]) > fabs(max))
+				max = data[i*samples+1];
+		for(size_t i=0; i<traces; i++)
+			if(data[i*samples+1] != max)
+				marks.push_back(i);
+		
+		double *buf = fftw_alloc_real(traces*(samples-2));
+		for(size_t i=0; i<traces; i++)
+			for(size_t j=0; j<samples; j++)
+				if(j>=2)
+					buf[i*(samples-2)+(j-2)] = data[i*samples+j];
+		samples-=2;
+
+		fftw_free(data);
+		data = buf;
+	}
 
 	read_timeDomain();
 }
@@ -278,7 +339,6 @@ void Profile::open_mala(std::string name, bool f)
 		read_rd37<int>();
 
 	read_timeDomain();
-	std::cout << "Samples: " << samples << " , traces: " << traces << ", timewindow: " << timeWindow << "\n"; 
 }
 
 
@@ -409,13 +469,39 @@ std::shared_ptr<Profile> Profile::subtractDewow(double t1)
 		return std::make_shared<Profile>(this, data);
 	}
 
+	std::vector<double> means;
 	for(size_t i=0; i<traces; i++)
 	{
-		for(size_t j=0; j<samples; j++)
+		double mean = 0;
+		for(size_t j=0; j<windowSize/2; j++)
+			mean += data[i*samples+j];
+		mean /= windowSize/2;
+		means.push_back(mean);
+	}
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=0; j<windowSize/2; j++)
+			filtered[i*samples+j] = data[i*samples+j]-means[i];
+
+	means.clear();
+	for(size_t i=0; i<traces; i++)
 		{
 			double mean = 0;
-			size_t start = j-windowSize/2 < 0 ? 0 : j-windowSize/2;
-			size_t end = j+windowSize/2 >= samples ? samples-1 : j+windowSize/2;
+			for(size_t j=samples-windowSize/2; j<samples; j++)
+				mean += data[i*samples+j];
+			mean /= windowSize/2;
+			means.push_back(mean);
+		}
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=samples-windowSize/2; j<samples; j++)
+			filtered[i*samples+j] = data[i*samples+j]-means[i];
+
+	for(size_t i=0; i<traces; i++)
+	{
+		for(size_t j=windowSize/2; j<samples-windowSize/2; j++)
+		{
+			double mean = 0;
+			size_t start = j-windowSize/2;
+			size_t end = j+windowSize/2;
 			for(size_t k=start; k<end; k++)
 				mean += data[i*samples+k];
 			mean /= end-start;
@@ -424,4 +510,51 @@ std::shared_ptr<Profile> Profile::subtractDewow(double t1)
 	}
 
 	return std::make_shared<Profile>(this, filtered);
+}
+
+std::shared_ptr<Profile> Profile::gainFunction(double timeStart, double linearGain, double exponent, double maxVal)
+{
+	size_t startIdx = 0;
+	for(size_t i=0; i<samples; i++)
+		if(timeDomain[i] >= timeStart)
+			startIdx = i;
+	double *filtered = fftw_alloc_real(samples*traces);
+
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=startIdx; j<samples; j++)
+		{
+			double t = timeDomain[j];
+			filtered[i*samples+j] = (1+linearGain*t)*pow(exp(1), exponent*t)*data[i*samples+j];
+		}
+
+	return std::make_shared<Profile>(this, filtered);
+}
+
+
+size_t* Profile::naivePicking()
+{
+	const double threshold = 0.2;
+	const double threshold1 = 0.05;
+	double *maxs = maxSamplePerTrace();
+	size_t *picks = new size_t[traces]{};
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=5; j<samples; j++)
+			if(fabs(data[i*samples+j]) >= fabs(threshold*maxs[i]))
+			{
+				size_t k = j;
+				while(k>=0)
+				{
+					if(fabs(data[i*samples+k]) <= fabs(threshold1*maxs[i]))
+					{
+						picks[i] = k;
+						break;
+					}
+					if(k==0)
+						break;
+					k--;
+				}
+				break;
+			}
+	delete[] maxs;
+	return picks;
 }

@@ -10,7 +10,7 @@
 
 #define TIMEWINDOW(pre, post) QDoubleSpinBox* pre##TimeWindow##post;
 
-static const char *proceduresNames[] = {"Subtract DC-shif", "Subtract mean (dewow)"};
+static const char *proceduresNames[] = {"Subtract DC-shif", "Subtract mean (dewow)", "Gain Function"};
 
 
 
@@ -22,17 +22,18 @@ public:
 private slots:
     void onDcShift(bool checked);
     void onDewow(bool checked);
+    void onGain(bool checked);
 	void onPopupUpdate();
 
 private:
 	QTabWidget *tabWidget;
 
 	MyQComboBox* procStepsCombo;
-	std::array<QRadioButton*, 2> proceduresRadios;
+	std::array<QRadioButton*, sizeof(proceduresNames)/sizeof(char*)> proceduresRadios;
     QStackedWidget *stack;
-	TIMEWINDOW(dc, 1);
+	/*TIMEWINDOW(dc, 1);
 	TIMEWINDOW(dc, 2);
-	TIMEWINDOW(dewow, 1);
+	TIEWINDOW(dewow, 1);*/
 	std::any procedur;
 
 	void apply(ProfileDocker*, std::shared_ptr<Profile>, QString);
@@ -40,9 +41,9 @@ private:
 	void applyBase(ProfileDocker*, std::shared_ptr<Profile>, QString);
 	void addProcessing(ProfileDocker*, QPushButton*);
 
-	void procDc();
 	QWidget* createDcShiftPage();
 	QWidget* createDewowPage();
+	QWidget* createGainPage();
 	void setupStackedOptions();
 	QString getProcessingName(ProfileDocker*, QLineEdit*);
 	std::shared_ptr<Profile> getCurrentProcessing();

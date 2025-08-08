@@ -20,7 +20,7 @@ MainWindow::MainWindow(char *fname)
 			wiggleViewAct->setChecked(false);
 			traceNormalizationAct->setChecked(false);
 			colorScaleAct->setChecked(false);
-
+			colorScaleAct->setChecked(false);
 			});
 
 	connect(mainTab->tabWidget, &QTabWidget::currentChanged, this, [=]() {
@@ -29,6 +29,8 @@ MainWindow::MainWindow(char *fname)
 				return;
 			wiggleViewAct->setChecked(docker->wiggle);
 			traceNormalizationAct->setChecked(docker->traceNormalization);
+			colorScaleAct->setChecked(docker->colorScale);
+			colorScaleAct->setChecked(docker->userMarks);
 			for(auto &color : gradientMap)
 				if(color.second == docker->gradType)
 				{
@@ -90,6 +92,15 @@ void MainWindow::colorScale()
 	docker->replot();
 }
 
+void MainWindow::userMarks()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+	if(!docker)
+		return;
+
+	docker->replotMarks(docker->userMarks ^ true);
+}
+
 void MainWindow::wiggleView()
 {
 	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
@@ -141,6 +152,13 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 			auto profile = docker->processingSteps[procStepsCombo->currentText()];
 			auto wiggleData = profile->prepareWiggleData(n, docker->wiggleType);
 			plot->graph(0)->setData(wiggleData.first, wiggleData.second);
+			plot->removeGraph(1);
+			QCPGraph *marker = plot->addGraph();
+			marker->addData(profile->picks[n], profile->data[n*profile->samples+profile->picks[n]]);
+
+			marker->setLineStyle(QCPGraph::lsNone);
+			marker->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 10));
+			marker->setPen(QPen(Qt::red));
 			plot->rescaleAxes();
 			plot->replot();
 			return;
@@ -211,7 +229,6 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 	connect(procStepsCombo, &MyQComboBox::activated, this, [=](int idx) {
 			if(idx == -1)
 				return;
-			removeWiggle(docker);
 			setUpWiggle(docker, spinBox->value(), idx);
 			});
 	connect(procStepsCombo, &MyQComboBox::signalPopupShown, this, [=]() {
@@ -274,6 +291,11 @@ void MainWindow::createActions()
 	colorScaleAct->setCheckable(true);
     connect(colorScaleAct, &QAction::triggered, this, &MainWindow::colorScale);
 
+	userMarksAct = new QAction(tr("&User marks"), this);
+    userMarksAct->setStatusTip(tr("Show user marks"));
+	userMarksAct->setCheckable(true);
+    connect(userMarksAct, &QAction::triggered, this, &MainWindow::userMarks);
+
     proceduresAct = new QAction(tr("&Procedures"), this);
     connect(proceduresAct, &QAction::triggered, this, &MainWindow::showpProceduresDialog);
 
@@ -296,6 +318,7 @@ void MainWindow::createMenus()
 	viewMenu->addAction(wiggleViewAct);
 	viewMenu->addAction(traceNormalizationAct);
 	viewMenu->addAction(colorScaleAct);
+	viewMenu->addAction(userMarksAct);
 
 	processingMenu = menuBar()->addMenu(tr("&Processing"));
 	processingMenu->addAction(proceduresAct);

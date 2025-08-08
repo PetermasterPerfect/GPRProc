@@ -18,17 +18,21 @@ file_pair split_filename(std::string fname);
 struct Profile
 {
 	std::string path;
-	uint32_t samples;
-	uint32_t traces;
+	size_t samples;
+	size_t traces;
 	double timeWindow;
 	double *data = nullptr;
 	double *timeDomain = nullptr;
+	size_t *picks = nullptr;
+	std::vector<size_t> marks;
 
 	std::pair<QVector<double>, QVector<double>> prepareWiggleData(size_t, char);
 	QCustomPlot* createWiggle(size_t, char type=0);
 	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale, double scale=1);
 	std::shared_ptr<Profile> subtractDcShift(double, double);
 	std::shared_ptr<Profile> subtractDewow(double);
+	std::shared_ptr<Profile> gainFunction(double timeStart, double linearGain, double exponent, double maxVal);
+	size_t* naivePicking();
 	double* maxSamplePerTrace();
 	Profile() {}
 	Profile(Profile&);
@@ -64,10 +68,10 @@ private:
 	template<class T>
 	void read_typed_data(std::ifstream &in, size_t sz)
 	{
-		data = fftw_alloc_real(sz/sizeof(T));
+		data = fftw_alloc_real(sz);
 		if(!data)
 			throw std::runtime_error("No memory");
-		for(int i=0; i<sz/sizeof(T); i++)
+		for(int i=0; i<sz; i++)
 		{
 			T buf;
 			in.read(reinterpret_cast<char*>(&buf), sizeof(T));

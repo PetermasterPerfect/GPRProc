@@ -45,7 +45,6 @@ ProfileDocker* TabbedWorkspaceWidget::addTab(std::shared_ptr<Profile> profile)
 	tabWidget->setCurrentWidget(docker);
 
 	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
-				std::cout << "close plot1\n";
 				docker->removeDockWidget(widget);
 				docker->removeColorMap(plotPair.value().first);
 			});

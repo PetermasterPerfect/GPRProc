@@ -19,20 +19,25 @@ ProfileDocker::~ProfileDocker()
 
 void ProfileDocker::replot()
 {
-	replot(scale, traceNormalization);
+	replot(scale, traceNormalization, userMarks);
 }
 
 void ProfileDocker::replot(double sc)
 {
-	replot(sc, traceNormalization);
+	replot(sc, traceNormalization, userMarks);
 }
 
 void ProfileDocker::replot(bool traceNorm)
 {
-	replot(scale, traceNorm);
+	replot(scale, traceNorm, userMarks);
 }
 
-void ProfileDocker::replot(double sc, bool traceNorm)
+void ProfileDocker::replotMarks(bool marks)
+{
+	replot(scale, traceNormalization, marks);
+}
+
+void ProfileDocker::replot(double sc, bool traceNorm, bool marks)
 {
 	for(auto widget : dockWidgets())
 	{
@@ -40,7 +45,6 @@ void ProfileDocker::replot(double sc, bool traceNorm)
 		if(widget == wiggle)
 			continue;
 
-		std::cout << "widgets iter: " << widget->objectName().toStdString() << "\n";
 		if(auto plot = dynamic_cast<QCustomPlot*>(widget->widget()))
 		{
 			QCPColorGradient gradient;
@@ -53,6 +57,31 @@ void ProfileDocker::replot(double sc, bool traceNorm)
 			else
 				profile = anonymousProc.second;
 
+			if(marks != userMarks)
+			{
+				if(marks)
+					for(auto mark : profile->marks)
+					{
+						QCPItemStraightLine *line = new QCPItemStraightLine(plot);
+						line->point1->setCoords(mark, 0);
+						line->point2->setCoords(mark, profile->samples-1);
+						line->setPen(QPen(Qt::blue, 2, Qt::DashLine));
+					}
+				else
+				{
+					size_t n = profile->marks.size();
+					while(n)
+						for(int i=0; i<plot->itemCount(); i++)
+							if(auto line = dynamic_cast<QCPItemStraightLine*>(plot->item(i)))
+							{
+								plot->removeItem(line);
+								n--;
+								break;
+							}
+				}
+
+				userMarks = marks;
+			}
 			if(sc != scale || traceNorm != traceNormalization)
 			{
 				double *norm = nullptr;
@@ -91,7 +120,6 @@ void ProfileDocker::replot(double sc, bool traceNorm)
 
 	scale = sc;
 	traceNormalization = traceNorm;
-	std::cout << "---------\n";
 }
 
 void ProfileDocker::removeColorMap(QCustomPlot* radargram)

@@ -44,6 +44,7 @@ mainLayout->addWidget(radioWidget);
 	connect(procStepsCombo, &MyQComboBox::signalPopupShown, this, &ProceduresDialog::onPopupUpdate);
     connect(proceduresRadios[0], &QRadioButton::toggled, this, &ProceduresDialog::onDcShift);
     connect(proceduresRadios[1], &QRadioButton::toggled, this, &ProceduresDialog::onDewow);
+    connect(proceduresRadios[2], &QRadioButton::toggled, this, &ProceduresDialog::onGain);
 	connect(tabWidget, &QTabWidget::currentChanged, this, [=]() {
 				onPopupUpdate();
 				while(stack->count())
@@ -65,9 +66,11 @@ void ProceduresDialog::setupStackedOptions()
 {
 	QWidget *dcShiftPage = createDcShiftPage();
     QWidget *dewowPage = createDewowPage();
+    QWidget *gainPage = createGainPage();
     stack = new QStackedWidget;
     stack->addWidget(dcShiftPage);
     stack->addWidget(dewowPage);
+    stack->addWidget(gainPage);
 }
 
 QWidget* ProceduresDialog::createDcShiftPage()
@@ -79,8 +82,8 @@ QWidget* ProceduresDialog::createDcShiftPage()
 	auto layout = new QVBoxLayout;
 	auto profile = getCurrentProcessing();
 
-	dcTimeWindow1 = new QDoubleSpinBox;
-	dcTimeWindow2 = new QDoubleSpinBox;
+	auto dcTimeWindow1 = new QDoubleSpinBox;
+	auto dcTimeWindow2 = new QDoubleSpinBox;
 
 	dcTimeWindow1->setRange(0, profile->timeWindow);
 	dcTimeWindow1->setSingleStep(0.001);
@@ -163,7 +166,7 @@ QWidget* ProceduresDialog::createDewowPage()
 	auto layout = new QVBoxLayout;
 	auto profile = getCurrentProcessing();
 
-	dewowTimeWindow1 = new QDoubleSpinBox;
+	auto dewowTimeWindow1 = new QDoubleSpinBox;
 	dewowTimeWindow1->setRange(0, profile->timeWindow);
 	dewowTimeWindow1->setValue(profile->timeWindow);
 	dewowTimeWindow1->setSingleStep(0.001);
@@ -224,6 +227,105 @@ QWidget* ProceduresDialog::createDewowPage()
 	return dewowPage;
 }
 
+QWidget* ProceduresDialog::createGainPage()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	auto gainPage = new QWidget;
+	auto layout = new QVBoxLayout;
+	auto profile = getCurrentProcessing();
+
+	auto startTime = new QDoubleSpinBox;
+	startTime->setRange(0, profile->timeWindow);
+	startTime->setValue(profile->timeWindow);
+	startTime->setSingleStep(0.001);
+	startTime->setDecimals(3);
+
+	auto linearGain = new QDoubleSpinBox;
+	linearGain->setMinimum(0);
+	linearGain->setValue(0);
+	linearGain->setSingleStep(0.001);
+	linearGain->setDecimals(3);
+	
+	auto exponent = new QDoubleSpinBox;
+	exponent->setMinimum(0);
+	exponent->setValue(0);
+	exponent->setSingleStep(0.001);
+	exponent->setDecimals(3);	
+
+	auto maxValue = new QSpinBox;
+	maxValue->setMinimum(0);
+	maxValue->setValue(100000);
+	
+	gainPage->setLayout(layout);
+
+	layout->addWidget(new QLabel("Gain function"));
+
+	auto hLayout1 = new QHBoxLayout;
+	hLayout1->addWidget(new QLabel("Time window:"));
+	hLayout1->addWidget(startTime);
+	auto hLayout1_2 = new QHBoxLayout;
+	hLayout1_2->addWidget(new QLabel("Linear gain:"));
+	hLayout1_2->addWidget(linearGain);
+	auto hLayout1_3 = new QHBoxLayout;
+	hLayout1_3->addWidget(new QLabel("Exponent:"));
+	hLayout1_3->addWidget(exponent);
+	auto hLayout1_4 = new QHBoxLayout;
+	hLayout1_4->addWidget(new QLabel("Max value:"));
+	hLayout1_4->addWidget(maxValue);
+	layout->addLayout(hLayout1);
+	layout->addLayout(hLayout1_2);
+	layout->addLayout(hLayout1_3);
+	layout->addLayout(hLayout1_4);
+
+	auto hLayout2 = new QHBoxLayout;
+	auto procName = new QLineEdit;
+	procName->setPlaceholderText("Input processing name(blank for default)");
+
+	auto procButton = new QPushButton("Proc");
+	procButton->setStatusTip("Add processing step");
+	procButton->setFlat(true);
+	hLayout2->addWidget(procName);
+
+	QPushButton *applyButton = new QPushButton("Apply");
+	hLayout2->addWidget(applyButton);
+
+	QPushButton *applyProcButton = new QPushButton("Apply&Proc");
+	applyProcButton->setStatusTip("Apply and add to processing steps");
+	hLayout2->addWidget(applyProcButton);
+	hLayout2->addWidget(procButton);
+	layout->addLayout(hLayout2);
+
+	connect(applyButton, &QPushButton::clicked, this, [=](){
+			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double, double, double)>(procedur);
+			auto profile = getCurrentProcessing();
+			auto proccessedProf = (profile.get()->*procFunc)(startTime->value(), linearGain->value(), exponent->value(), maxValue->value());
+			if(!proccessedProf)
+				return;
+			apply(docker, proccessedProf, getProcessingName(docker, procName));
+			procButton->setFlat(false);
+			});
+
+	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double, double, double)>(procedur);
+			auto profile = getCurrentProcessing();
+			auto proccessedProf = (profile.get()->*procFunc)(startTime->value(), linearGain->value(), exponent->value(), maxValue->value());
+			if(!proccessedProf)
+				return;
+			applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+			procButton->setFlat(true);
+
+		});
+
+	connect(procButton, &QPushButton::clicked, this, [=]() {
+			addProcessing(docker, procButton);
+		});
+
+	return gainPage;
+}
+
+
 std::shared_ptr<Profile> ProceduresDialog::getCurrentProcessing()
 {
 	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
@@ -264,6 +366,18 @@ void ProceduresDialog::onDewow(bool checked)
 		if(!docker)
 			return;
 		procedur = &Profile::subtractDewow;
+	}
+}
+
+void ProceduresDialog::onGain(bool checked) 
+{
+    if (checked)
+	{
+        stack->setCurrentIndex(2);
+		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+		if(!docker)
+			return;
+		procedur = &Profile::gainFunction;
 	}
 }
 
