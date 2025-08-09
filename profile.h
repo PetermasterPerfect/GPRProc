@@ -1,6 +1,7 @@
 #ifndef PROFILE_H
 #define PROFILE_H
 
+#include "formats.h"
 #include "qcustomplot.h"
 #include <memory>
 #include <iostream>
@@ -43,8 +44,9 @@ struct Profile
 private:
 	bool init = false;
 
+	int askForChannelDialog(tagRFHeader*);
 	void open_ss(std::string);
-	void open_gssi(std::string, uint16_t channel=1);
+	void open_gssi(std::string);
 	void open_mala(std::string, bool f=0);
 	void read_rad(std::string);
 	void read_hd(std::string);
@@ -66,13 +68,15 @@ private:
 	}
 	
 	template<class T>
-	void read_typed_data(std::ifstream &in, size_t sz)
+	void read_typed_data(std::ifstream &in, size_t sz, size_t offset=0)
 	{
 		data = fftw_alloc_real(sz);
 		if(!data)
 			throw std::runtime_error("No memory");
 		for(int i=0; i<sz; i++)
 		{
+			if(offset && i%offset == 0)
+				in.seekg(offset*sizeof(T), std::ios_base::cur);
 			T buf;
 			in.read(reinterpret_cast<char*>(&buf), sizeof(T));
 			data[i] = buf;

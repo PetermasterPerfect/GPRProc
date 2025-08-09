@@ -1,5 +1,4 @@
 #include "profile.h"
-#include "formats.h"
 #include <cmath>
 
 file_pair split_filename(std::string fname)
@@ -221,7 +220,7 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QC
 	map->setData(mapData);
 	map->setGradient(gradient);
 	map->rescaleDataRange();
-	map->setInterpolate(false);
+	map->setInterpolate(1);
 	map->setTightBoundary(false);
 	imagePlot->rescaleAxes();
 	imagePlot->replot();
@@ -230,40 +229,85 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QC
 	return std::make_optional(std::make_pair(imagePlot, map));;
 }
 
-void Profile::open_gssi(std::string name, uint16_t channel)
+
+int Profile::askForChannelDialog(tagRFHeader *hdr)
+{
+	QDialog dialog;
+    dialog.setWindowTitle("Choose a channel");
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+	std::vector<QRadioButton*> options;
+	for(int i=0; i<hdr->rh_nchan; i++)
+	{
+		auto buf = new QRadioButton("Channel "+ QString::number(i+1));
+		options.push_back(buf);
+		layout->addWidget(buf);
+	}
+	options[0]->setChecked(true);
+
+    QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok);
+    layout->addWidget(buttons);
+
+    QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+
+    if (dialog.exec() == QDialog::Accepted) 
+	{
+		for(int i=0; i<hdr->rh_nchan; i++)
+			if(options[i]->isChecked())
+				return i+1;
+    } 
+	else
+		return -1;
+}
+
+
+void Profile::open_gssi(std::string name)
 {
 	std::ifstream in = open_both_cases(name, ".DZT"); 
 	if(!in)
 		throw std::invalid_argument("No dzt file");
 
-	DztHdrStruct hdr;
-	in.read(reinterpret_cast<char*>(&hdr), sizeof(DztHdrStruct));
-	if(channel <= 0 || channel > hdr.rh_nchan)
-		throw std::invalid_argument("Bad channel");
+	tagRFHeader hdr;
+	in.read(reinterpret_cast<char*>(&hdr), sizeof(tagRFHeader));
+	int channel = hdr.rh_nchan > 1 ? askForChannelDialog(&hdr) : 1;
 
 	samples = hdr.rh_nsamp;
-	timeWindow = hdr.rh_range*1000;
+	timeWindow = hdr.rhf_range;
 
 	in.seekg(0, std::ios_base::end);
-	size_t offset = sizeof(DztHdrStruct)*hdr.rh_nchan;
+	size_t offset;
+	if(hdr.rh_data < MINHEADERSIZE)
+		offset = hdr.rh_data*MINHEADERSIZE;
+	else
+		offset = hdr.rh_nchan*MINHEADERSIZE;
+
 	size_t sz = static_cast<size_t>(in.tellg());
 	if(sz <= offset)
 		throw std::invalid_argument("Bad offset");
 	sz -= offset;
-	traces = sz/(hdr.rh_bits/8)/samples;
-	in.seekg(offset, std::ios_base::beg);
-	//offset/=hdr.rh_bits/8;
-	if(hdr.rh_bits == 8)
-		read_typed_data<uint8_t>(in, sz);
-	else if(hdr.rh_bits == 16)
+	sz /= hdr.rh_bits/8;
+	sz /= hdr.rh_nchan;
+	size_t moveOff;
+	if(hdr.rh_nchan > 1)
 	{
-		read_typed_data<uint16_t>(in, sz);
-		for(int i=0; i<sz/2; i++)
-			data[i] = data[i] - pow(2, 16)/2;
+		if(channel == 1)
+			in.seekg(offset-samples*(hdr.rh_bits/8), std::ios_base::beg);
+		else
+			in.seekg(offset, std::ios_base::beg);
+		moveOff = samples*(hdr.rh_nchan-1);
 	}
+	else
+	{
+		in.seekg(offset, std::ios_base::beg);
+		moveOff = 0;
+	}
+	if(hdr.rh_bits == 8)
+		read_typed_data<uint8_t>(in, sz, moveOff);
+	else if(hdr.rh_bits == 16)
+		read_typed_data<uint16_t>(in, sz, moveOff);
 	else if(hdr.rh_bits == 32)
-		read_typed_data<uint32_t>(in, sz);
-
+		read_typed_data<int32_t>(in, sz, moveOff);
+	traces = sz/samples;
 
 	std::ifstream inDzx = open_both_cases(name, ".DZX"); 
 	if(inDzx)
@@ -273,19 +317,22 @@ void Profile::open_gssi(std::string name, uint16_t channel)
 	else
 	{
 		double max = 0;
-		for(size_t i=0; i<traces; i++)
+		/*for(size_t i=0; i<traces; i++)
 			if(fabs(data[i*samples+1]) > fabs(max))
-				max = data[i*samples+1];
+				max = data[i*samples+1];*/
 		for(size_t i=0; i<traces; i++)
-			if(data[i*samples+1] != max)
+			if(data[i*samples+1] > 0)
 				marks.push_back(i);
+		if(marks.size() == traces) // all marks 
+			marks.clear();
 		
-		double *buf = fftw_alloc_real(traces*(samples-2));
+		size_t zero = hdr.rh_zero ? hdr.rh_zero : 2;
+		double *buf = fftw_alloc_real(traces*(samples-zero));
 		for(size_t i=0; i<traces; i++)
 			for(size_t j=0; j<samples; j++)
-				if(j>=2)
-					buf[i*(samples-2)+(j-2)] = data[i*samples+j];
-		samples-=2;
+				if(j>=zero)
+					buf[i*(samples-zero)+(j-zero)] = data[i*samples+j];
+		samples-=zero;
 
 		fftw_free(data);
 		data = buf;
