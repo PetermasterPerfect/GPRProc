@@ -50,7 +50,7 @@ private:
 	void open_mala(std::string, bool f=0);
 	void read_rad(std::string);
 	void read_hd(std::string);
-	void read_timeDomain();
+	void readTimeDomain();
 	template<class T>
 	void read_rd37()
 	{

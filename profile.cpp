@@ -34,7 +34,7 @@ Profile::Profile(std::string p): path(p)
 	else if(boost::algorithm::to_lower_copy(ext) == "dzt")
 		open_gssi(name);
 	else if(boost::algorithm::to_lower_copy(ext) == "dt1")
-		std::cout << "ok;";
+		open_ss(name);
 		//load dt1
 	else
 		std::cout << "Unsupport extension\n";
@@ -226,7 +226,7 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QC
 	map->setData(mapData);
 	map->setGradient(gradient);
 	map->rescaleDataRange();
-	map->setInterpolate(1);
+	map->setInterpolate(false);
 	map->setTightBoundary(false);
 	imagePlot->rescaleAxes();
 	imagePlot->replot();
@@ -323,9 +323,6 @@ void Profile::open_gssi(std::string name)
 	else
 	{
 		double max = 0;
-		/*for(size_t i=0; i<traces; i++)
-			if(fabs(data[i*samples+1]) > fabs(max))
-				max = data[i*samples+1];*/
 		for(size_t i=0; i<traces; i++)
 			if(data[i*samples+1] > 0)
 				marks.push_back(i);
@@ -344,9 +341,70 @@ void Profile::open_gssi(std::string name)
 		data = buf;
 	}
 
-	read_timeDomain();
+	readTimeDomain();
 }
 
+
+void Profile::open_ss(std::string name)
+{
+	bool isHdr = true;
+	try
+	{
+		read_hd(name);
+	}
+	catch(std::invalid_argument)
+	{
+		isHdr = false;
+	}
+	std::ifstream in = open_both_cases(name, ".DT1"); 
+	if(!in)
+		throw std::invalid_argument("No dzt file");
+
+	if(isHdr)
+	{
+		size_t sz = samples*traces;
+		data = fftw_alloc_real(sz);
+		if(!data)
+			throw std::runtime_error("No memory");
+		for(int i=0; i<sz; i++)
+		{
+			if(i%samples == 0)
+				in.seekg(sizeof(SsTraceHdrStruct), std::ios_base::cur);
+			int16_t buf;
+			in.read(reinterpret_cast<char*>(&buf), sizeof(int16_t));
+			data[i] = buf;
+		}
+	}
+	else
+	{
+		traces = 0;
+
+		float buf;
+		in.seekg(8, std::ios_base::cur);
+		in.read(reinterpret_cast<char*>(&buf), sizeof(buf));
+		samples = buf;
+		in.seekg(0, std::ios_base::end);
+		size_t fileSz = in.tellg();
+		if(fileSz % (sizeof(SsTraceHdrStruct)+samples*sizeof(int16_t)) == 0)
+		{
+			in.seekg(0, std::ios_base::beg);
+			traces = fileSz / (sizeof(SsTraceHdrStruct)+samples*sizeof(int16_t));
+			size_t sz = samples*traces;
+			data = fftw_alloc_real(sz);
+			if(!data)
+				throw std::runtime_error("No memory");
+			for(int i=0; i<sz; i++)
+			{
+				if(i%samples == 0)
+					in.seekg(sizeof(SsTraceHdrStruct), std::ios_base::cur);
+				int16_t buf;
+				in.read(reinterpret_cast<char*>(&buf), sizeof(int16_t));
+				data[i] = buf;
+			}
+		}
+	}
+
+}
 
 void Profile::read_hd(std::string name)
 {
@@ -356,12 +414,14 @@ void Profile::read_hd(std::string name)
 	std::string line;
 	while(std::getline(in, line)) 
 	{
-		size_t sep = line.find(" = ");
+		size_t sep = line.find("=");
 		if(sep == std::string::npos)
 			continue;
 		std::string key = line.substr(0, sep);
-		std::string value = line.substr(sep+1);	
-		if(key == "SAMPLES")
+		std::string value = line.substr(sep+1);
+		boost::algorithm::trim(key);
+		boost::algorithm::trim(value);
+		if(key == "NUMBER OF PTS/TRC")
 		{
 			samples = std::stol(value);
 			if(samples <= 0)
@@ -379,6 +439,15 @@ void Profile::read_hd(std::string name)
 				throw std::invalid_argument("Bad header info");
 			}
 		}
+		else if(key == "TOTAL TIME WINDOW")
+		{
+			timeWindow = std::stod(value);
+			if(timeWindow <= 0)
+			{
+				in.close();
+				throw std::invalid_argument("Bad header info");
+			}
+		}
 	}
 	in.close();
 }
@@ -391,11 +460,11 @@ void Profile::open_mala(std::string name, bool f)
 	else
 		read_rd37<int>();
 
-	read_timeDomain();
+	readTimeDomain();
 }
 
 
-void Profile::read_timeDomain()
+void Profile::readTimeDomain()
 {
 	timeDomain = new double[samples];
 	if(!timeDomain)
@@ -420,12 +489,15 @@ void Profile::read_rad(std::string name)
 	//Header ret;
 	while(std::getline(in, line)) 
 	{
-		size_t sep = line.find(':');
+		size_t sep = line.find(":");
 		if(sep == std::string::npos)
 			continue;
-			//throw std::invalid_argument("Bad line");
+
 		std::string key = line.substr(0, sep);
-		std::string value = line.substr(sep+1);	
+		std::string value = line.substr(sep+1);
+		boost::algorithm::trim(key);
+		boost::algorithm::trim(value);
+
 		if(key == "SAMPLES")
 		{
 			samples = std::stol(value);
@@ -570,15 +642,25 @@ std::shared_ptr<Profile> Profile::gainFunction(double timeStart, double linearGa
 	size_t startIdx = 0;
 	for(size_t i=0; i<samples; i++)
 		if(timeDomain[i] >= timeStart)
+		{
 			startIdx = i;
+			break;
+		}
 	double *filtered = fftw_alloc_real(samples*traces);
 
 	for(size_t i=0; i<traces; i++)
+	{
 		for(size_t j=startIdx; j<samples; j++)
 		{
 			double t = timeDomain[j];
-			filtered[i*samples+j] = (1+linearGain*t)*pow(exp(1), exponent*t)*data[i*samples+j];
+			double val = (1+linearGain*t)*exp(exponent*t)*data[i*samples+j];
+			filtered[i*samples+j] = val > maxVal ? maxVal : val;
+			if(i == 0)
+				std::cout << exponent*t << ", " << exp(exponent*t) << "\n";
+			//std::cout << filtered[i*samples+j] << " ";
 		}
+	//std::cout << "\n";
+	}
 
 	return std::make_shared<Profile>(this, filtered);
 }
@@ -591,7 +673,7 @@ size_t* Profile::naivePicking()
 	double *maxs = maxSamplePerTrace();
 	size_t *picks = new size_t[traces]{};
 	for(size_t i=0; i<traces; i++)
-		for(size_t j=5; j<samples; j++)
+		for(size_t j=0; j<samples; j++)
 			if(fabs(data[i*samples+j]) >= fabs(threshold*maxs[i]))
 			{
 				size_t k = j;

@@ -238,7 +238,7 @@ QWidget* ProceduresDialog::createGainPage()
 
 	auto startTime = new QDoubleSpinBox;
 	startTime->setRange(0, profile->timeWindow);
-	startTime->setValue(profile->timeWindow);
+	startTime->setValue(0);
 	startTime->setSingleStep(0.001);
 	startTime->setDecimals(3);
 
@@ -256,6 +256,7 @@ QWidget* ProceduresDialog::createGainPage()
 
 	auto maxValue = new QSpinBox;
 	maxValue->setMinimum(0);
+	maxValue->setMaximum(2147483647);
 	maxValue->setValue(100000);
 	
 	gainPage->setLayout(layout);

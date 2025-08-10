@@ -4,6 +4,37 @@
 typedef uint8_t  BYTE;
 typedef uint32_t DWORD;
 
+
+struct SsTraceHdrStruct
+{ /* trace identification header */
+    float trace_num;        /* trace sequence number within line */
+    float position;         /* position along traverse */
+    float num_samples;      /* samples per trace */
+    float elevation;        /* elevation data if available */
+    float unass5;           /* unassigned */
+    float num_bytes;        /* bytes per sample; always 2 for Rev. 3 firmware */
+    float aux_trace_num;    /* trace number again */
+    float num_stacks;       /* number of stacks used to get trace */
+    float time_window;      /* time window in ns */
+    float unass10;          /* unassigned */
+    float unass11;          /* unassigned */
+    float unass12;          /* unassigned */
+    float unass13;          /* unassigned */
+    float unass14;          /* unassigned */
+    float unass15;          /* unassigned */
+    float unass16;          /* unassigned */
+    float unass17;          /* unassigned */
+    float unass18;          /* unassigned */
+    float unass19;          /* unassigned */
+    float unass20;          /* unassigned */
+    float time_zero_adjust; /* where sample x = sample x + adjustment */
+    float zero_flag;        /* 0 = data OK, 1 = zero data */
+    float unass23;          /* unassigned */
+    float time;             /* seconds past midnight */
+    float comment_flag;     /* 1 = comment attached */
+    char comment[28];       /* optional character comments */
+};
+
 // ----------------------------------------
 // A. Internal structures
 // ----------------------------------------
