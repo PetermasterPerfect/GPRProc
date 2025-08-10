@@ -5,7 +5,7 @@ typedef uint8_t  BYTE;
 typedef uint32_t DWORD;
 
 
-struct SsTraceHdrStruct
+struct __attribute__((packed)) SsTraceHdrStruct
 { /* trace identification header */
     float trace_num;        /* trace sequence number within line */
     float position;         /* position along traverse */

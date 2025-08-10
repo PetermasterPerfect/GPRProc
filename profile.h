@@ -32,7 +32,7 @@ struct Profile
 	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale, double scale=1);
 	std::shared_ptr<Profile> subtractDcShift(double, double);
 	std::shared_ptr<Profile> subtractDewow(double);
-	std::shared_ptr<Profile> gainFunction(double timeStart, double linearGain, double exponent, double maxVal);
+	std::shared_ptr<Profile> gainFunction(double timeStart, double timeEnd, double exponent, double maxVal);
 	size_t* naivePicking();
 	double* maxSamplePerTrace();
 	Profile() {}

@@ -10,7 +10,7 @@
 
 #define TIMEWINDOW(pre, post) QDoubleSpinBox* pre##TimeWindow##post;
 
-static const char *proceduresNames[] = {"Subtract DC-shif", "Subtract mean (dewow)", "Gain Function"};
+static const char *proceduresNames[] = {"Subtract DC-shif", "Subtract mean (dewow)", "Exponent gain"};
 
 
 

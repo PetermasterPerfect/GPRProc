@@ -383,6 +383,10 @@ void Profile::open_ss(std::string name)
 		in.seekg(8, std::ios_base::cur);
 		in.read(reinterpret_cast<char*>(&buf), sizeof(buf));
 		samples = buf;
+		in.seekg(20, std::ios_base::cur);
+		in.read(reinterpret_cast<char*>(&buf), sizeof(buf));
+		timeWindow = buf ? buf : 400;
+		std::cout << "tw: " << timeWindow << "\n";
 		in.seekg(0, std::ios_base::end);
 		size_t fileSz = in.tellg();
 		if(fileSz % (sizeof(SsTraceHdrStruct)+samples*sizeof(int16_t)) == 0)
@@ -403,6 +407,8 @@ void Profile::open_ss(std::string name)
 			}
 		}
 	}
+
+	readTimeDomain();
 
 }
 
@@ -637,30 +643,62 @@ std::shared_ptr<Profile> Profile::subtractDewow(double t1)
 	return std::make_shared<Profile>(this, filtered);
 }
 
-std::shared_ptr<Profile> Profile::gainFunction(double timeStart, double linearGain, double exponent, double maxVal)
+std::shared_ptr<Profile> Profile::gainFunction(double t1, double t2, double exponent, double maxVal)
 {
-	size_t startIdx = 0;
+	if(t1 < 0 || t2 < 0 || t1 > t2 | t1 > timeWindow || t2 > timeWindow)
+		return std::shared_ptr<Profile>{};
+	size_t startIdx = 0, endIdx = samples-1;
+	bool f = 0;
 	for(size_t i=0; i<samples; i++)
-		if(timeDomain[i] >= timeStart)
+	{
+		if(timeDomain[i] >= t1 && !f)
 		{
 			startIdx = i;
+			f = 1;
+		}
+		if(timeDomain[i] >= t2)
+		{
+			endIdx = i;
 			break;
 		}
+	}
+	std::cout << startIdx << ", " << endIdx << " <--\n";
 	double *filtered = fftw_alloc_real(samples*traces);
+	memcpy(filtered, data, traces*samples);
 
 	for(size_t i=0; i<traces; i++)
-	{
-		for(size_t j=startIdx; j<samples; j++)
+		for(size_t j=startIdx; j<=endIdx; j++)
 		{
 			double t = timeDomain[j];
-			double val = (1+linearGain*t)*exp(exponent*t)*data[i*samples+j];
-			filtered[i*samples+j] = val > maxVal ? maxVal : val;
-			if(i == 0)
-				std::cout << exponent*t << ", " << exp(exponent*t) << "\n";
-			//std::cout << filtered[i*samples+j] << " ";
+			filtered[i*samples+j] = exp((t-timeDomain[startIdx])*timeDomain[1]*exponent)*data[i*samples+j];
+			
 		}
-	//std::cout << "\n";
-	}
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=endIdx+1; j<samples; j++)
+			filtered[i*samples+j] = exp((timeDomain[endIdx]-timeDomain[startIdx])*timeDomain[1]*exponent)*data[i*samples+j];
+	
+	const size_t sz = traces * samples;
+	const double mean = std::accumulate(data, data + sz, 0.0) / sz;
+	const double meanFilt = std::accumulate(filtered, filtered + sz, 0.0) / sz;
+
+	double varianceData = std::accumulate(data, data + sz, 0.0,
+		[&](double accumulator, const double& val) {
+			return accumulator + (val - mean) * (val - mean);
+		}) / (sz - 1);
+	const double stdData = std::sqrt(varianceData);
+
+	double varianceFilt = std::accumulate(filtered, filtered + sz, 0.0,
+		[&](double accumulator, const double& val) {
+			return accumulator + (val - meanFilt) * (val - meanFilt);
+		}) / (sz - 1);
+	double stdFilt = std::sqrt(varianceFilt);
+
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=0; j<samples; j++)
+		{
+			filtered[i*samples+j] /= stdFilt;
+			filtered[i*samples+j] *= stdData;
+		}
 
 	return std::make_shared<Profile>(this, filtered);
 }

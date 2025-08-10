@@ -242,11 +242,11 @@ QWidget* ProceduresDialog::createGainPage()
 	startTime->setSingleStep(0.001);
 	startTime->setDecimals(3);
 
-	auto linearGain = new QDoubleSpinBox;
-	linearGain->setMinimum(0);
-	linearGain->setValue(0);
-	linearGain->setSingleStep(0.001);
-	linearGain->setDecimals(3);
+	auto endTime = new QDoubleSpinBox;
+	endTime->setRange(0, profile->timeWindow);
+	endTime->setValue(profile->timeWindow);
+	endTime->setSingleStep(0.001);
+	endTime->setDecimals(3);
 	
 	auto exponent = new QDoubleSpinBox;
 	exponent->setMinimum(0);
@@ -256,19 +256,18 @@ QWidget* ProceduresDialog::createGainPage()
 
 	auto maxValue = new QSpinBox;
 	maxValue->setMinimum(0);
-	maxValue->setMaximum(2147483647);
 	maxValue->setValue(100000);
 	
 	gainPage->setLayout(layout);
 
-	layout->addWidget(new QLabel("Gain function"));
+	layout->addWidget(new QLabel("Exponent gain"));
 
 	auto hLayout1 = new QHBoxLayout;
-	hLayout1->addWidget(new QLabel("Time window:"));
+	hLayout1->addWidget(new QLabel("Start time :"));
 	hLayout1->addWidget(startTime);
 	auto hLayout1_2 = new QHBoxLayout;
-	hLayout1_2->addWidget(new QLabel("Linear gain:"));
-	hLayout1_2->addWidget(linearGain);
+	hLayout1_2->addWidget(new QLabel("End time:"));
+	hLayout1_2->addWidget(endTime);
 	auto hLayout1_3 = new QHBoxLayout;
 	hLayout1_3->addWidget(new QLabel("Exponent:"));
 	hLayout1_3->addWidget(exponent);
@@ -301,7 +300,7 @@ QWidget* ProceduresDialog::createGainPage()
 	connect(applyButton, &QPushButton::clicked, this, [=](){
 			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double, double, double)>(procedur);
 			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)(startTime->value(), linearGain->value(), exponent->value(), maxValue->value());
+			auto proccessedProf = (profile.get()->*procFunc)(startTime->value(), endTime->value(), exponent->value(), maxValue->value());
 			if(!proccessedProf)
 				return;
 			apply(docker, proccessedProf, getProcessingName(docker, procName));
@@ -311,7 +310,7 @@ QWidget* ProceduresDialog::createGainPage()
 	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
 			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double, double, double)>(procedur);
 			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)(startTime->value(), linearGain->value(), exponent->value(), maxValue->value());
+			auto proccessedProf = (profile.get()->*procFunc)(startTime->value(), endTime->value(), exponent->value(), maxValue->value());
 			if(!proccessedProf)
 				return;
 			applyProc(docker, proccessedProf, getProcessingName(docker, procName));
