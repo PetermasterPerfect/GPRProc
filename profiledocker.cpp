@@ -149,3 +149,10 @@ void ProfileDocker::replotColorScale(QCustomPlot *plot)
 		plot->plotLayout()->addElement(0, 1, colorSc);
 	}
 }
+
+
+bool ProfileDocker::containsMarks()
+{
+	auto prof = processingSteps.begin()->second;
+	return !prof->marks.empty();
+}

@@ -108,6 +108,9 @@ Profile::Profile(Profile *prof, double *buf)
 	for(unsigned i=0; i<samples; i++)
 		timeDomain[i] = prof->timeDomain[i];
 
+	marks = prof->marks;
+
+	picks = naivePicking();
 	init = true;
 }
 
@@ -178,20 +181,23 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 	wigglePlot->xAxis->setLabel("x");
 	wigglePlot->yAxis->setLabel("y");
 
-	QCPGraph *marker = wigglePlot->addGraph();
-	marker->addData(picks[n], data[n*samples+picks[n]]);
-	marker->setLineStyle(QCPGraph::lsNone);
-	marker->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 10));
-	marker->setPen(QPen(Qt::red));
+	if(type == 0)
+	{
+		QCPGraph *marker = wigglePlot->addGraph();
+		marker->addData(picks[n], data[n*samples+picks[n]]);
+		marker->setLineStyle(QCPGraph::lsNone);
+		marker->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 10));
+		marker->setPen(QPen(Qt::red));
 
-	QCPScatterStyle myScatter;
-	myScatter.setShape(QCPScatterStyle::ssCircle);
-	myScatter.setPen(QPen(Qt::blue));
-	myScatter.setBrush(Qt::white);
-	myScatter.setSize(5);
-	wigglePlot->graph(0)->setScatterStyle(myScatter);
+		QCPScatterStyle myScatter;
+		myScatter.setShape(QCPScatterStyle::ssCircle);
+		myScatter.setPen(QPen(Qt::blue));
+		myScatter.setBrush(Qt::white);
+		myScatter.setSize(5);
+		wigglePlot->graph(0)->setScatterStyle(myScatter);
+		wigglePlot->graph(1)->rescaleAxes(true);
+	}
 	wigglePlot->graph(0)->rescaleAxes();
-	wigglePlot->graph(1)->rescaleAxes(true);
 	wigglePlot->replot();
 	return wigglePlot;
 }

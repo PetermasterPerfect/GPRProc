@@ -20,7 +20,8 @@ MainWindow::MainWindow(char *fname)
 			wiggleViewAct->setChecked(false);
 			traceNormalizationAct->setChecked(false);
 			colorScaleAct->setChecked(false);
-			colorScaleAct->setChecked(false);
+			userMarksAct->setChecked(false);
+			userMarksAct->setEnabled(false);
 			});
 
 	connect(mainTab->tabWidget, &QTabWidget::currentChanged, this, [=]() {
@@ -30,7 +31,12 @@ MainWindow::MainWindow(char *fname)
 			wiggleViewAct->setChecked(docker->wiggle);
 			traceNormalizationAct->setChecked(docker->traceNormalization);
 			colorScaleAct->setChecked(docker->colorScale);
-			colorScaleAct->setChecked(docker->userMarks);
+			userMarksAct->setChecked(docker->userMarks);
+			if(docker->containsMarks())
+				userMarksAct->setEnabled(true);
+			else
+				userMarksAct->setEnabled(false);
+
 			for(auto &color : gradientMap)
 				if(color.second == docker->gradType)
 				{

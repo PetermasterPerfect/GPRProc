@@ -45,6 +45,7 @@ public:
 	void replot(double, bool, bool);
 	void replotMarks(bool);
 	void removeColorMap(QCustomPlot*);
+	bool containsMarks();
 private:
 	QString name;
 	void replotColorScale(QCustomPlot*);
