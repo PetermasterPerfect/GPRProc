@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
-add_compile_options(-g)# -fsanitize=address)
-#add_link_options(-fsanitize=address)
+add_compile_options(-g -fsanitize=address)
+add_link_options(-fsanitize=address)
 project(GPRProc LANGUAGES CXX)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets PrintSupport)

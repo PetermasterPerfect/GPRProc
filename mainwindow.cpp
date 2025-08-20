@@ -206,14 +206,14 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 			});
 	connect(spinBox, &QSpinBox::valueChanged, this, [=](int i) {
 			//removeWiggle(docker);
-			setUpWiggle(docker, i, procStepsCombo->currentIndex());
+			setUpWiggle(docker, i-1, procStepsCombo->currentIndex());
 			});
 
 	connect(currentButton, &QRadioButton::toggled, this, [=](bool checked) {
 			if(checked) {
 				docker->wiggleType = 0;
 				removeWiggle(docker);
-				setUpWiggle(docker, spinBox->value(), procStepsCombo->currentIndex());
+				setUpWiggle(docker, spinBox->value()-1, procStepsCombo->currentIndex());
 			}
 			});
 
@@ -221,21 +221,21 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 			if(checked) {
 				docker->wiggleType = 1;
 				removeWiggle(docker);
-				setUpWiggle(docker, spinBox->value(), procStepsCombo->currentIndex());
+				setUpWiggle(docker, spinBox->value()-1, procStepsCombo->currentIndex());
 			}
 			});
 	connect(phaseButton, &QRadioButton::toggled, this, [=](bool checked) {
 			if(checked) {
 				docker->wiggleType = 2;
 				removeWiggle(docker);
-				setUpWiggle(docker, spinBox->value(), procStepsCombo->currentIndex());
+				setUpWiggle(docker, spinBox->value()-1, procStepsCombo->currentIndex());
 			}
 			});
 
 	connect(procStepsCombo, &MyQComboBox::activated, this, [=](int idx) {
 			if(idx == -1)
 				return;
-			setUpWiggle(docker, spinBox->value(), idx);
+			setUpWiggle(docker, spinBox->value()-1, idx);
 			});
 	connect(procStepsCombo, &MyQComboBox::signalPopupShown, this, [=]() {
 		for(int i=procStepsCombo->count(); i>=0; i--)

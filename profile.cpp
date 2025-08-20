@@ -138,7 +138,7 @@ std::pair<QVector<double>, QVector<double>> Profile::prepareWiggleData(size_t n,
 		for (int i=0; i<samples; ++i)
 		{
 			x[i] = i;
-			y[i] = data[(n-1)*samples+i];
+			y[i] = data[n*samples+i];
 		}
 		break;
 	case 1: // amplitude
@@ -147,7 +147,7 @@ std::pair<QVector<double>, QVector<double>> Profile::prepareWiggleData(size_t n,
 		fftw_complex *fourier = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * traces*samples);
 		double *trace = fftw_alloc_real(samples);
 		for (int i=0; i<samples; ++i)
-			trace[i] = data[(n-1)*samples+i];
+			trace[i] = data[n*samples+i];
 
 		p = fftw_plan_dft_r2c_1d(samples, trace, fourier, FFTW_ESTIMATE);
 		fftw_execute(p);
@@ -544,6 +544,24 @@ double* Profile::maxSamplePerTrace()
 	return ret;
 }
 
+double Profile::maxAmplitude()
+{
+	double ret = data[0];
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=0; j<samples; j++)
+			ret =  data[i*samples+j] > ret ? data[i*samples+j] : ret;
+	return ret;
+}
+
+double Profile::minAmplitude()
+{
+	double ret = data[0];
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=0; j<samples; j++)
+			ret =  data[i*samples+j] < ret ? data[i*samples+j] : ret;
+	return ret;
+}
+
 std::shared_ptr<Profile> Profile::subtractDcShift(double t1, double t2)
 {
 	std::cout << "dc: " << t1 << "\n";
@@ -664,7 +682,6 @@ std::shared_ptr<Profile> Profile::gainFunction(double t1, double t2, double expo
 	}
 	std::cout << startIdx << ", " << endIdx << " <--\n";
 	double *filtered = fftw_alloc_real(samples*traces);
-	memcpy(filtered, data, traces*samples);
 
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=startIdx; j<=endIdx; j++)
@@ -703,6 +720,51 @@ std::shared_ptr<Profile> Profile::gainFunction(double t1, double t2, double expo
 	return std::make_shared<Profile>(this, filtered);
 }
 
+
+
+std::shared_ptr<Profile> Profile::ampltitudesTo0(double amplMin, double amplMax)
+{
+	if(amplMin > amplMax)
+		return std::shared_ptr<Profile>{};
+
+	double *filtered = fftw_alloc_real(samples*traces);
+	memcpy(filtered, data, traces*samples*sizeof(double));
+
+	for(size_t i=0; i<traces*samples; i++)
+		if(data[i] >= amplMin && data[i] <= amplMax)
+			filtered[i] = 0;
+
+	return std::make_shared<Profile>(this, filtered);
+}
+
+
+std::shared_ptr<Profile> Profile::xFlip()
+{
+	double *filtered = fftw_alloc_real(samples*traces);
+
+	for(size_t i=traces-1; i>=0; i--)
+	{
+		for(size_t j=0; j<samples; j++)
+			filtered[(traces-1-i)*samples+j] = data[(i)*samples+j];
+		if(!i)
+			break;
+	}
+	return std::make_shared<Profile>(this, filtered);
+}
+
+std::shared_ptr<Profile> Profile::yFlip()
+{
+	double *filtered = fftw_alloc_real(samples*traces);
+
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=samples-1; j>=0; j--)
+		{
+			filtered[i*samples+(samples-1-j)] = data[i*samples+j];
+			if(!j)
+				break;
+		}
+	return std::make_shared<Profile>(this, filtered);
+}
 
 size_t* Profile::naivePicking()
 {

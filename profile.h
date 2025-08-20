@@ -33,8 +33,14 @@ struct Profile
 	std::shared_ptr<Profile> subtractDcShift(double, double);
 	std::shared_ptr<Profile> subtractDewow(double);
 	std::shared_ptr<Profile> gainFunction(double timeStart, double timeEnd, double exponent, double maxVal);
+	std::shared_ptr<Profile> ampltitudesTo0(double amplMin, double amplMax);
+	std::shared_ptr<Profile> xFlip();
+	std::shared_ptr<Profile> yFlip();
+
 	size_t* naivePicking();
 	double* maxSamplePerTrace();
+	double maxAmplitude();
+	double minAmplitude();
 	Profile() {}
 	Profile(Profile&);
 	Profile(Profile&&);
