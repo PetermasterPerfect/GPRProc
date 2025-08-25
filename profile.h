@@ -32,10 +32,11 @@ struct Profile
 	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale, double scale=1);
 	std::shared_ptr<Profile> subtractDcShift(double, double);
 	std::shared_ptr<Profile> subtractDewow(double);
-	std::shared_ptr<Profile> gainFunction(double timeStart, double timeEnd, double exponent, double maxVal);
-	std::shared_ptr<Profile> ampltitudesTo0(double amplMin, double amplMax);
+	std::shared_ptr<Profile> gainFunction(double, double, double, double);
+	std::shared_ptr<Profile> ampltitudesTo0(double, double );
 	std::shared_ptr<Profile> xFlip();
 	std::shared_ptr<Profile> yFlip();
+	std::shared_ptr<Profile> timeCut(double);
 
 	size_t* naivePicking();
 	double* maxSamplePerTrace();
@@ -46,6 +47,7 @@ struct Profile
 	Profile(Profile&&);
 	Profile(Profile*, double*);
 	Profile(std::string);
+	Profile(size_t, size_t, double, double*);
 	~Profile();
 private:
 	bool init = false;
@@ -57,6 +59,8 @@ private:
 	void read_rad(std::string);
 	void read_hd(std::string);
 	void readTimeDomain();
+	void readMarks(std::ifstream&, int, size_t, tagRFHeader *);
+	void readMarksFromUnsigned(double*, int16_t); 
 	template<class T>
 	void read_rd37()
 	{
@@ -68,15 +72,15 @@ private:
 		size_t sz = static_cast<size_t>(in.tellg());
 		in.seekg(0, std::ios_base::beg);
 
-		read_typed_data<T>(in, sz);
+		data = read_typed_data<T>(in, sz);
 		in.close();
 
 	}
 	
 	template<class T>
-	void read_typed_data(std::ifstream &in, size_t sz, size_t offset=0)
+	double* read_typed_data(std::ifstream &in, size_t sz, size_t offset=0)
 	{
-		data = fftw_alloc_real(sz);
+		double *data = fftw_alloc_real(sz);
 		if(!data)
 			throw std::runtime_error("No memory");
 		for(int i=0; i<sz; i++)
@@ -87,6 +91,7 @@ private:
 			in.read(reinterpret_cast<char*>(&buf), sizeof(T));
 			data[i] = buf;
 		}
+		return data;
 	}
 	
 };

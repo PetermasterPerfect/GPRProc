@@ -95,6 +95,13 @@ void ProceduresDialog::onPopupUpdate()
 
 void ProceduresDialog::apply(ProfileDocker *docker, std::shared_ptr<Profile> profile, QString name)
 {{
+	if(docker->anonymousProc.second)
+		for(auto widget : docker->dockWidgets())
+			if(docker->anonymousProc.first == widget->objectName())
+            {{
+				docker->removeDockWidget(widget);
+				break;
+			}}
 	applyBase(docker, profile, name);
 
 	docker->anonymousProc.second = profile;

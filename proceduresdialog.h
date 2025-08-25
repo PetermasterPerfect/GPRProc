@@ -8,9 +8,8 @@
 #include <functional>
 #include <any>
 
-#define TIMEWINDOW(pre, post) QDoubleSpinBox* pre##TimeWindow##post;
 
-static const char *gProceduresNames[] = {"Subtract DC-shif", "Subtract mean (dewow)", "Exponent gain", "Amplitudes to 0", "X(traces) flip", "Y(samples) flip"};
+static const char *gProceduresNames[] = {"Subtract DC-shift", "Subtract mean (dewow)", "Exponent gain", "Amplitudes to 0", "X(traces) flip", "Y(samples) flip", "Time cut"}; //proc names
 
 class ProceduresDialog : public QDialog {
     Q_OBJECT
@@ -18,32 +17,31 @@ public:
     ProceduresDialog(QTabWidget *tab, QWidget *parent = nullptr);
 
 private slots:
-    void onDcShift(bool checked);
-    void onDewow(bool checked);
-    void onGain(bool checked);
-    void onAmplitude0(bool checked);
-    void onXFlip(bool checked);
-    void onYFlip(bool checked);
+        void onDcshift(bool checked);
+	void onDewow(bool checked);
+	void onGain(bool checked);
+	void onAmplitudesto0(bool checked);
+	void onXflip(bool checked);
+	void onYflip(bool checked);
+	void onTimecut(bool checked); // slots 
 	void onPopupUpdate();
 
 private:
 	using SlotType = void (ProceduresDialog::*)(bool);
-	std::array<SlotType, 6> onProcSlots = {
-		&ProceduresDialog::onDcShift,
+	std::array<SlotType, 7> onProcSlots = {
+	    	&ProceduresDialog::onDcshift,
 		&ProceduresDialog::onDewow,
 		&ProceduresDialog::onGain,
-		&ProceduresDialog::onAmplitude0,
-		&ProceduresDialog::onXFlip,
-		&ProceduresDialog::onYFlip,
+		&ProceduresDialog::onAmplitudesto0,
+		&ProceduresDialog::onXflip,
+		&ProceduresDialog::onYflip,
+		&ProceduresDialog::onTimecut // slots functions	
 	};
 	QTabWidget *tabWidget;
 
 	MyQComboBox* procStepsCombo;
 	std::array<QRadioButton*, sizeof(gProceduresNames)/sizeof(char*)> proceduresRadios;
     QStackedWidget *stack;
-	/*TIMEWINDOW(dc, 1);
-	TIMEWINDOW(dc, 2);
-	TIEWINDOW(dewow, 1);*/
 	std::any procedur;
 
 	void apply(ProfileDocker*, std::shared_ptr<Profile>, QString);
@@ -51,16 +49,16 @@ private:
 	void applyBase(ProfileDocker*, std::shared_ptr<Profile>, QString);
 	void addProcessing(ProfileDocker*, QPushButton*);
 
-	QWidget* createDcShiftPage();
-	QWidget* createDewowPage();
-	QWidget* createGainPage();
-	QWidget* createAmplitude0Page();
-	QWidget* createXFlipPage();
-	QWidget* createYFlipPage();
+        QWidget* createDcshift();
+	QWidget* createDewow();
+	QWidget* createGain();
+	QWidget* createAmplitudesto0();
+	QWidget* createXflip();
+	QWidget* createYflip();
+	QWidget* createTimecut(); // create pages	
 	void setupStackedOptions();
 	QString getProcessingName(ProfileDocker*, QLineEdit*);
 	std::shared_ptr<Profile> getCurrentProcessing();
 };
-
 
 #endif

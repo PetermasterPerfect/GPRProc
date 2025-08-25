@@ -65,7 +65,7 @@ class Template():
         slots_dec = '\n\t'.join([f'void {x}(bool checked);' for x in self.slots])
         slots_func = ',\n\t'.join([f'\t&ProceduresDialog::{x}' for x in self.slots])
         pages_dec = '\n\t'.join([x+';' for x in pages]) 
-        return CLASS_DEF.format(proc_names, slots_dec, slots_func, pages_dec) 
+        return CLASS_DEF.format(proc_names, slots_dec, len(self.procedures), slots_func, pages_dec) 
 
 
     def gen_src(self):
@@ -97,37 +97,41 @@ class Template():
         return CREATE_PAGE.format(name, proc.label, setup, layouts, proc.prototype, args_pass, proc.prototype, args_pass, extra=proc.extra)
 
 
-dc = Procedur("Subtract DC-shift", 'dcShift', 'subtractDcShift')
-dc.inputs = [In('QDoubleSpinBox', 'Time window 1: ', value='0', rang3='0, profile->timeWindow', decimals='3', single_step='0.001'),
-    In('QDoubleSpinBox', 'Time window 2: ', value='profile->timeWindow', rang3='0, profile->timeWindow', decimals='3', single_step='0.001')]
+if __name__ == "__main__":
+    dc = Procedur("Subtract DC-shift", 'dcShift', 'subtractDcShift')
+    dc.inputs = [In('QDoubleSpinBox', 'Time window 1: ', value='0', rang3='0, profile->timeWindow', decimals='3', single_step='0.001'),
+        In('QDoubleSpinBox', 'Time window 2: ', value='profile->timeWindow', rang3='0, profile->timeWindow', decimals='3', single_step='0.001')]
 
-dewow = Procedur("Subtract mean (dewow)", 'dewow', 'subtractDewow')
-dewow.inputs = [In('QDoubleSpinBox','Time window 1: ', value='0', rang3='0, profile->timeWindow', decimals='3', single_step='0.001')]
+    dewow = Procedur("Subtract mean (dewow)", 'dewow', 'subtractDewow')
+    dewow.inputs = [In('QDoubleSpinBox','Time window 1: ', value='0', rang3='0, profile->timeWindow', decimals='3', single_step='0.001')]
 
-gain = Procedur("Exponent gain", 'gain', 'gainFunction')
-gain.inputs = [
-        In('QDoubleSpinBox','Start time: ', value='0', rang3='0, profile->timeWindow', decimals='3', single_step='0.001'),
-        In('QDoubleSpinBox','End time: ', value='profile->timeWindow', rang3='0, profile->timeWindow', decimals='3', single_step='0.001'),
-        In('QDoubleSpinBox','Exponent: ', value='0', mn='0', decimals='3', single_step='0.001'),
-        In('QSpinBox', 'Max value: ', value='100000', rang3='0, 100000000')]
-
-
-ampl0 = Procedur("Amplitudes to 0", 'amplitudesTo0', 'ampltitudesTo0')
-ampl0.extra = """
-	double maxVal = profile->maxAmplitude();
-	double minVal = profile->minAmplitude();
-	double range = sqrt(maxVal*maxVal-minVal*minVal);
-"""
-ampl0.inputs = [
-        In('QDoubleSpinBox','Min amplitude: ', value='minVal', rang3='minVal, maxVal', decimals='3', single_step='range/1000'),
-        In('QDoubleSpinBox','Max amplitude: ', value='maxVal', rang3='minVal, maxVal', decimals='3', single_step='range/1000')]
-
-xflip = Procedur("X(traces) flip", 'xFlip', 'xFlip')
-yflip = Procedur("Y(samples) flip", 'yFlip', 'yFlip')
+    gain = Procedur("Exponent gain", 'gain', 'gainFunction')
+    gain.inputs = [
+            In('QDoubleSpinBox','Start time: ', value='0', rang3='0, profile->timeWindow', decimals='3', single_step='0.001'),
+            In('QDoubleSpinBox','End time: ', value='profile->timeWindow', rang3='0, profile->timeWindow', decimals='3', single_step='0.001'),
+            In('QDoubleSpinBox','Exponent: ', value='0', mn='0', decimals='3', single_step='0.001'),
+            In('QSpinBox', 'Max value: ', value='100000', rang3='0, 100000000')]
 
 
-temp = Template([dc, dewow, gain, ampl0, xflip, yflip])
-with open('proceduresdialog.h', 'w') as f:
-    f.write(temp.gen_hdr())
-with open('proceduresdialog.cpp', 'w') as f:
-    f.write(temp.gen_src())
+    ampl0 = Procedur("Amplitudes to 0", 'amplitudesTo0', 'ampltitudesTo0')
+    ampl0.extra = """
+        double maxVal = profile->maxAmplitude();
+        double minVal = profile->minAmplitude();
+        double range = sqrt(maxVal*maxVal-minVal*minVal);
+    """
+    ampl0.inputs = [
+            In('QDoubleSpinBox','Min amplitude: ', value='minVal', rang3='minVal, maxVal', decimals='3', single_step='range/1000'),
+            In('QDoubleSpinBox','Max amplitude: ', value='maxVal', rang3='minVal, maxVal', decimals='3', single_step='range/1000')]
+
+    xflip = Procedur("X(traces) flip", 'xFlip', 'xFlip')
+    yflip = Procedur("Y(samples) flip", 'yFlip', 'yFlip')
+    time_cut = Procedur("Time cut", 'timeCut', 'timeCut')
+    time_cut.inputs = [
+            In('QDoubleSpinBox','Time to cut: ', value='profile->timeWindow', rang3='0, profile->timeWindow*10', decimals='3', single_step='profile->timeWindow/profile->samples')]
+
+
+    temp = Template([dc, dewow, gain, ampl0, xflip, yflip, time_cut])
+    with open('proceduresdialog.h', 'w') as f:
+        f.write(temp.gen_hdr())
+    with open('proceduresdialog.cpp', 'w') as f:
+        f.write(temp.gen_src())

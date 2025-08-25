@@ -1,3 +1,4 @@
+
 #include "proceduresdialog.h"
 #include <QVBoxLayout>
 #include <QLabel>
@@ -64,478 +65,23 @@ mainLayout->addWidget(radioWidget);
 
 void ProceduresDialog::setupStackedOptions()
 {
-	QWidget *dcShiftPage = createDcShiftPage();
-    QWidget *dewowPage = createDewowPage();
-    QWidget *gainPage = createGainPage();
-    QWidget *onAmplitude0Page = createAmplitude0Page();
-    QWidget *xFlipPage = createYFlipPage();
-    QWidget *yFlipPage = createXFlipPage();
+    // procedures pages
+    auto dcShiftPage = createDcshift();
+	auto dewowPage = createDewow();
+	auto gainPage = createGain();
+	auto amplitudesTo0Page = createAmplitudesto0();
+	auto xFlipPage = createXflip();
+	auto yFlipPage = createYflip();
+	auto timeCutPage = createTimecut();
     stack = new QStackedWidget;
     stack->addWidget(dcShiftPage);
-    stack->addWidget(dewowPage);
-    stack->addWidget(gainPage);
-    stack->addWidget(onAmplitude0Page);
-    stack->addWidget(xFlipPage);
-    stack->addWidget(yFlipPage);
+	stack->addWidget(dewowPage);
+	stack->addWidget(gainPage);
+	stack->addWidget(amplitudesTo0Page);
+	stack->addWidget(xFlipPage);
+	stack->addWidget(yFlipPage);
+	stack->addWidget(timeCutPage);
 }
-
-QWidget* ProceduresDialog::createDcShiftPage()
-{
-	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-	if(!docker)
-		return nullptr;
-	auto dcShiftPage = new QWidget;
-	auto layout = new QVBoxLayout;
-	auto profile = getCurrentProcessing();
-
-	auto dcTimeWindow1 = new QDoubleSpinBox;
-	auto dcTimeWindow2 = new QDoubleSpinBox;
-
-	dcTimeWindow1->setRange(0, profile->timeWindow);
-	dcTimeWindow1->setSingleStep(0.001);
-	dcTimeWindow1->setDecimals(3);
-	dcTimeWindow1->setValue(0);
-
-	dcTimeWindow2->setRange(0, profile->timeWindow);
-	dcTimeWindow2->setSingleStep(0.001);
-	dcTimeWindow2->setDecimals(3);
-	dcTimeWindow2->setValue(profile->timeWindow);
-
-	dcShiftPage->setLayout(layout);
-
-	layout->addWidget(new QLabel("Subtract DC-shift options"));
-
-	auto hLayout1 = new QHBoxLayout;
-	hLayout1->addWidget(new QLabel("Time window 1:"));
-	hLayout1->addWidget(dcTimeWindow1);
-	layout->addLayout(hLayout1);
-
-	auto hLayout2 = new QHBoxLayout;
-	hLayout2->addWidget(new QLabel("Time window 2:"));
-	hLayout2->addWidget(dcTimeWindow2);
-	layout->addLayout(hLayout2);
-
-	auto hLayout3 = new QHBoxLayout;
-	auto procName = new QLineEdit;
-	procName->setPlaceholderText("Input processing name(blank for default)");
-
-	auto procButton = new QPushButton("Proc");
-	procButton->setStatusTip("Add processing step");
-	procButton->setFlat(true);
-	hLayout3->addWidget(procName);
-
-	QPushButton *applyButton = new QPushButton("Apply");
-	hLayout3->addWidget(applyButton);
-
-	QPushButton *applyProcButton = new QPushButton("Apply&Proc");
-	applyProcButton->setStatusTip("Apply and add to processing steps");
-	hLayout3->addWidget(applyProcButton);
-
-	hLayout3->addWidget(procButton);
-	layout->addLayout(hLayout3);
-
-	connect(applyButton, &QPushButton::clicked, this, [=](){
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double)>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)(dcTimeWindow1->value(), dcTimeWindow2->value());
-			if(!proccessedProf)
-				return;
-			apply(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(false);
-			});
-
-	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double)>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)(dcTimeWindow1->value(), dcTimeWindow2->value());
-			if(!proccessedProf)
-				return;
-			applyProc(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(true);
-
-		});
-
-	connect(procButton, &QPushButton::clicked, this, [=]() {
-			addProcessing(docker, procButton);
-		});
-
-	return dcShiftPage;
-}
-
-
-QWidget* ProceduresDialog::createDewowPage()
-{
-	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-	if(!docker)
-		return nullptr;
-	auto dewowPage = new QWidget;
-	auto layout = new QVBoxLayout;
-	auto profile = getCurrentProcessing();
-
-	auto dewowTimeWindow1 = new QDoubleSpinBox;
-	dewowTimeWindow1->setRange(0, profile->timeWindow);
-	dewowTimeWindow1->setValue(profile->timeWindow);
-	dewowTimeWindow1->setSingleStep(0.001);
-	dewowTimeWindow1->setDecimals(3);
-	dewowPage->setLayout(layout);
-
-	layout->addWidget(new QLabel("Subtract-mean (dewow)"));
-
-	auto hLayout1 = new QHBoxLayout;
-
-	hLayout1->addWidget(new QLabel("Time window:"));
-	hLayout1->addWidget(dewowTimeWindow1);
-	layout->addLayout(hLayout1);
-
-	auto hLayout2 = new QHBoxLayout;
-	auto procName = new QLineEdit;
-	procName->setPlaceholderText("Input processing name(blank for default)");
-
-	auto procButton = new QPushButton("Proc");
-	procButton->setStatusTip("Add processing step");
-	procButton->setFlat(true);
-	hLayout2->addWidget(procName);
-
-	QPushButton *applyButton = new QPushButton("Apply");
-	hLayout2->addWidget(applyButton);
-
-	QPushButton *applyProcButton = new QPushButton("Apply&Proc");
-	applyProcButton->setStatusTip("Apply and add to processing steps");
-	hLayout2->addWidget(applyProcButton);
-	hLayout2->addWidget(procButton);
-	layout->addLayout(hLayout2);
-
-	connect(applyButton, &QPushButton::clicked, this, [=](){
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double)>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)(dewowTimeWindow1->value());
-			if(!proccessedProf)
-				return;
-			apply(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(false);
-			});
-
-	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double)>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)(dewowTimeWindow1->value());
-			if(!proccessedProf)
-				return;
-			applyProc(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(true);
-
-		});
-
-	connect(procButton, &QPushButton::clicked, this, [=]() {
-			addProcessing(docker, procButton);
-		});
-
-	return dewowPage;
-}
-
-QWidget* ProceduresDialog::createGainPage()
-{
-	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-	if(!docker)
-		return nullptr;
-	auto gainPage = new QWidget;
-	auto layout = new QVBoxLayout;
-	auto profile = getCurrentProcessing();
-
-	auto startTime = new QDoubleSpinBox;
-	startTime->setRange(0, profile->timeWindow);
-	startTime->setValue(0);
-	startTime->setSingleStep(profile->timeWindow/(profile->samples*2));
-	startTime->setDecimals(3);
-
-	auto endTime = new QDoubleSpinBox;
-	endTime->setRange(0, profile->timeWindow);
-	endTime->setValue(profile->timeWindow);
-	endTime->setSingleStep(profile->timeWindow/(profile->samples*2));
-	endTime->setDecimals(3);
-	
-	auto exponent = new QDoubleSpinBox;
-	exponent->setMinimum(0);
-	exponent->setValue(0);
-	exponent->setSingleStep(0.001);
-	exponent->setDecimals(3);	
-
-	auto maxValue = new QSpinBox;
-	maxValue->setRange(0, 100000000);
-	maxValue->setValue(100000);
-	
-	gainPage->setLayout(layout);
-
-	layout->addWidget(new QLabel("Exponent gain"));
-
-	auto hLayout1 = new QHBoxLayout;
-	hLayout1->addWidget(new QLabel("Start time :"));
-	hLayout1->addWidget(startTime);
-	auto hLayout1_2 = new QHBoxLayout;
-	hLayout1_2->addWidget(new QLabel("End time:"));
-	hLayout1_2->addWidget(endTime);
-	auto hLayout1_3 = new QHBoxLayout;
-	hLayout1_3->addWidget(new QLabel("Exponent:"));
-	hLayout1_3->addWidget(exponent);
-	auto hLayout1_4 = new QHBoxLayout;
-	hLayout1_4->addWidget(new QLabel("Max value:"));
-	hLayout1_4->addWidget(maxValue);
-	layout->addLayout(hLayout1);
-	layout->addLayout(hLayout1_2);
-	layout->addLayout(hLayout1_3);
-	layout->addLayout(hLayout1_4);
-
-	auto hLayout2 = new QHBoxLayout;
-	auto procName = new QLineEdit;
-	procName->setPlaceholderText("Input processing name(blank for default)");
-
-	auto procButton = new QPushButton("Proc");
-	procButton->setStatusTip("Add processing step");
-	procButton->setFlat(true);
-	hLayout2->addWidget(procName);
-
-	QPushButton *applyButton = new QPushButton("Apply");
-	hLayout2->addWidget(applyButton);
-
-	QPushButton *applyProcButton = new QPushButton("Apply&Proc");
-	applyProcButton->setStatusTip("Apply and add to processing steps");
-	hLayout2->addWidget(applyProcButton);
-	hLayout2->addWidget(procButton);
-	layout->addLayout(hLayout2);
-
-	connect(applyButton, &QPushButton::clicked, this, [=](){
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double, double, double)>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)(startTime->value(), endTime->value(), exponent->value(), maxValue->value());
-			if(!proccessedProf)
-				return;
-			apply(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(false);
-			});
-
-	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double, double, double)>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)(startTime->value(), endTime->value(), exponent->value(), maxValue->value());
-			if(!proccessedProf)
-				return;
-			applyProc(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(true);
-
-		});
-
-	connect(procButton, &QPushButton::clicked, this, [=]() {
-			addProcessing(docker, procButton);
-		});
-
-	return gainPage;
-}
-
-
-QWidget* ProceduresDialog::createAmplitude0Page()
-{
-	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-	if(!docker)
-		return nullptr;
-	auto page = new QWidget;
-	auto layout = new QVBoxLayout;
-	auto profile = getCurrentProcessing();
-
-	double maxVal = profile->maxAmplitude();
-	double minVal = profile->minAmplitude();
-	double range = sqrt(maxVal*maxVal-minVal*minVal);
-
-	auto minAmpl = new QDoubleSpinBox;
-	minAmpl->setRange(minVal, maxVal);
-	minAmpl->setValue(minVal);
-	minAmpl->setSingleStep(range/1000);
-	minAmpl->setDecimals(3);
-
-	auto maxAmpl = new QDoubleSpinBox;
-	maxAmpl->setRange(minVal, maxVal);
-	maxAmpl->setValue(maxVal);
-	maxAmpl->setSingleStep(range/1000);
-	maxAmpl->setDecimals(3);
-	
-	page->setLayout(layout);
-
-	layout->addWidget(new QLabel("Set amplitudes to 0"));
-
-	auto hLayout1 = new QHBoxLayout;
-	hLayout1->addWidget(new QLabel("Min amplitude :"));
-	hLayout1->addWidget(minAmpl);
-	auto hLayout1_2 = new QHBoxLayout;
-	hLayout1_2->addWidget(new QLabel("Max amplitude :"));
-	hLayout1_2->addWidget(maxAmpl);
-	layout->addLayout(hLayout1);
-	layout->addLayout(hLayout1_2);
-
-	auto hLayout2 = new QHBoxLayout;
-	auto procName = new QLineEdit;
-	procName->setPlaceholderText("Input processing name(blank for default)");
-
-	auto procButton = new QPushButton("Proc");
-	procButton->setStatusTip("Add processing step");
-	procButton->setFlat(true);
-	hLayout2->addWidget(procName);
-
-	QPushButton *applyButton = new QPushButton("Apply");
-	hLayout2->addWidget(applyButton);
-
-	QPushButton *applyProcButton = new QPushButton("Apply&Proc");
-	applyProcButton->setStatusTip("Apply and add to processing steps");
-	hLayout2->addWidget(applyProcButton);
-	hLayout2->addWidget(procButton);
-	layout->addLayout(hLayout2);
-
-
-	connect(applyButton, &QPushButton::clicked, this, [=](){
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double)>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)(minAmpl->value(), maxAmpl->value());
-			if(!proccessedProf)
-				return;
-			apply(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(false);
-			});
-
-	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double)>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)(minAmpl->value(), maxAmpl->value());
-			if(!proccessedProf)
-				return;
-			applyProc(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(true);
-
-		});
-
-	connect(procButton, &QPushButton::clicked, this, [=]() {
-			addProcessing(docker, procButton);
-		});
-	return page;
-
-}
-
-QWidget* ProceduresDialog::createXFlipPage()
-{
-	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-	if(!docker)
-		return nullptr;
-	auto page = new QWidget;
-	auto layout = new QVBoxLayout;
-	auto profile = getCurrentProcessing();
-
-	page->setLayout(layout);
-
-	layout->addWidget(new QLabel("X(traces) flip"));
-
-	auto hLayout2 = new QHBoxLayout;
-	auto procName = new QLineEdit;
-	procName->setPlaceholderText("Input processing name(blank for default)");
-
-	auto procButton = new QPushButton("Proc");
-	procButton->setStatusTip("Add processing step");
-	procButton->setFlat(true);
-	hLayout2->addWidget(procName);
-
-	QPushButton *applyButton = new QPushButton("Apply");
-	hLayout2->addWidget(applyButton);
-
-	QPushButton *applyProcButton = new QPushButton("Apply&Proc");
-	applyProcButton->setStatusTip("Apply and add to processing steps");
-	hLayout2->addWidget(applyProcButton);
-	hLayout2->addWidget(procButton);
-	layout->addLayout(hLayout2);
-
-
-	connect(applyButton, &QPushButton::clicked, this, [=](){
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)()>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)();
-			if(!proccessedProf)
-				return;
-			apply(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(false);
-			});
-
-	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)()>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)();
-			if(!proccessedProf)
-				return;
-			applyProc(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(true);
-
-		});
-
-	connect(procButton, &QPushButton::clicked, this, [=]() {
-			addProcessing(docker, procButton);
-		});
-	return page;
-
-}
-
-QWidget* ProceduresDialog::createYFlipPage()
-{
-	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-	if(!docker)
-		return nullptr;
-	auto page = new QWidget;
-	auto layout = new QVBoxLayout;
-	auto profile = getCurrentProcessing();
-
-	page->setLayout(layout);
-
-	layout->addWidget(new QLabel("Y(samples) flip"));
-
-	auto hLayout2 = new QHBoxLayout;
-	auto procName = new QLineEdit;
-	procName->setPlaceholderText("Input processing name(blank for default)");
-
-	auto procButton = new QPushButton("Proc");
-	procButton->setStatusTip("Add processing step");
-	procButton->setFlat(true);
-	hLayout2->addWidget(procName);
-
-	QPushButton *applyButton = new QPushButton("Apply");
-	hLayout2->addWidget(applyButton);
-
-	QPushButton *applyProcButton = new QPushButton("Apply&Proc");
-	applyProcButton->setStatusTip("Apply and add to processing steps");
-	hLayout2->addWidget(applyProcButton);
-	hLayout2->addWidget(procButton);
-	layout->addLayout(hLayout2);
-
-
-	connect(applyButton, &QPushButton::clicked, this, [=](){
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)()>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)();
-			if(!proccessedProf)
-				return;
-			apply(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(false);
-			});
-
-	connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-			auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)()>(procedur);
-			auto profile = getCurrentProcessing();
-			auto proccessedProf = (profile.get()->*procFunc)();
-			if(!proccessedProf)
-				return;
-			applyProc(docker, proccessedProf, getProcessingName(docker, procName));
-			procButton->setFlat(true);
-
-		});
-
-	connect(procButton, &QPushButton::clicked, this, [=]() {
-			addProcessing(docker, procButton);
-		});
-	return page;
-}
-
 
 std::shared_ptr<Profile> ProceduresDialog::getCurrentProcessing()
 {
@@ -543,90 +89,6 @@ std::shared_ptr<Profile> ProceduresDialog::getCurrentProcessing()
 	if(!docker)
 		return nullptr;
 	return docker->processingSteps[procStepsCombo->currentText()];
-}
-
-QString ProceduresDialog::getProcessingName(ProfileDocker* docker, QLineEdit *procName)
-{
-	auto txt = procName->text();
-	if(!txt.size())
-		for(auto &radio : proceduresRadios)
-			if(radio->isChecked())
-				return radio->text()+QString::number(docker->processingSteps.size());
-	return txt;
-
-}
-
-void ProceduresDialog::onDcShift(bool checked) 
-{
-    if (checked)
-	{
-        stack->setCurrentIndex(0);
-		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-		if(!docker)
-			return;
-		procedur = &Profile::subtractDcShift;
-	}
-}
-
-void ProceduresDialog::onDewow(bool checked) 
-{
-    if (checked)
-	{
-        stack->setCurrentIndex(1);
-		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-		if(!docker)
-			return;
-		procedur = &Profile::subtractDewow;
-	}
-}
-
-void ProceduresDialog::onGain(bool checked) 
-{
-    if (checked)
-	{
-        stack->setCurrentIndex(2);
-		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-		if(!docker)
-			return;
-		procedur = &Profile::gainFunction;
-	}
-}
-
-void ProceduresDialog::onAmplitude0(bool checked) 
-{
-    if (checked)
-	{
-        stack->setCurrentIndex(3);
-		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-		if(!docker)
-			return;
-		procedur = &Profile::ampltitudesTo0;
-	}
-}
-
-void ProceduresDialog::onXFlip(bool checked) 
-{
-    if (checked)
-	{
-        stack->setCurrentIndex(4);
-		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-		if(!docker)
-			return;
-		procedur = &Profile::xFlip;
-	}
-}
-
-
-void ProceduresDialog::onYFlip(bool checked) 
-{
-    if (checked)
-	{
-        stack->setCurrentIndex(5);
-		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
-		if(!docker)
-			return;
-		procedur = &Profile::yFlip;
-	}
 }
 
 void ProceduresDialog::onPopupUpdate()
@@ -644,6 +106,13 @@ void ProceduresDialog::onPopupUpdate()
 
 void ProceduresDialog::apply(ProfileDocker *docker, std::shared_ptr<Profile> profile, QString name)
 {
+	if(docker->anonymousProc.second)
+		for(auto widget : docker->dockWidgets())
+			if(docker->anonymousProc.first == widget->objectName())
+            {
+				docker->removeDockWidget(widget);
+				break;
+			}
 	applyBase(docker, profile, name);
 
 	docker->anonymousProc.second = profile;
@@ -656,19 +125,16 @@ void ProceduresDialog::applyProc(ProfileDocker *docker, std::shared_ptr<Profile>
 
 	docker->anonymousProc = std::make_pair("", nullptr);
 	docker->processingSteps[name] = profile;
-	//procStepsCombo->insertItem(procStepsCombo->count(), name);
 }
 
 void ProceduresDialog::applyBase(ProfileDocker *docker, std::shared_ptr<Profile> profile, QString name)
 {
-	std::cout << "applyBase\n";
 	auto widget = docker->createDockWidget(name);
 	auto plotPair = profile->createRadargram(docker->gradType, docker->scale);
 	if(!plotPair.value().first)
 		return;
 
 	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
-			std::cout << "close plot2\n";
 			docker->removeDockWidget(widget);
 			docker->removeColorMap(plotPair.value().first);
 		});
@@ -680,14 +146,652 @@ void ProceduresDialog::applyBase(ProfileDocker *docker, std::shared_ptr<Profile>
 
 void ProceduresDialog::addProcessing(ProfileDocker *docker, QPushButton *procButton)
 {
-	std::cout << "addprocessing\n";	
 	if(procButton->isFlat())
 		return;
 	if(docker->anonymousProc.second)
 	{
-		//procStepsCombo->insertItem(procStepsCombo->count(), docker->anonymousProc.first);
 		docker->processingSteps.insert(docker->anonymousProc);
 		docker->anonymousProc = std::make_pair("", nullptr);
 	}
 	procButton->setFlat(true);
 }
+
+QString ProceduresDialog::getProcessingName(ProfileDocker* docker, QLineEdit *procName)
+{
+	auto txt = procName->text();
+	if(!txt.size())
+		for(auto &radio : proceduresRadios)
+			if(radio->isChecked())
+				return radio->text()+QString::number(docker->processingSteps.size());
+	return txt;
+
+}
+
+
+void ProceduresDialog::onDcshift(bool checked) 
+{
+    if (checked)
+    {
+        stack->setCurrentIndex(0);
+		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+		if(!docker)
+			return;
+		procedur = &Profile::subtractDcShift;
+	}
+}
+
+
+void ProceduresDialog::onDewow(bool checked) 
+{
+    if (checked)
+    {
+        stack->setCurrentIndex(1);
+		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+		if(!docker)
+			return;
+		procedur = &Profile::subtractDewow;
+	}
+}
+
+
+void ProceduresDialog::onGain(bool checked) 
+{
+    if (checked)
+    {
+        stack->setCurrentIndex(2);
+		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+		if(!docker)
+			return;
+		procedur = &Profile::gainFunction;
+	}
+}
+
+
+void ProceduresDialog::onAmplitudesto0(bool checked) 
+{
+    if (checked)
+    {
+        stack->setCurrentIndex(3);
+		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+		if(!docker)
+			return;
+		procedur = &Profile::ampltitudesTo0;
+	}
+}
+
+
+void ProceduresDialog::onXflip(bool checked) 
+{
+    if (checked)
+    {
+        stack->setCurrentIndex(4);
+		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+		if(!docker)
+			return;
+		procedur = &Profile::xFlip;
+	}
+}
+
+
+void ProceduresDialog::onYflip(bool checked) 
+{
+    if (checked)
+    {
+        stack->setCurrentIndex(5);
+		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+		if(!docker)
+			return;
+		procedur = &Profile::yFlip;
+	}
+}
+
+
+void ProceduresDialog::onTimecut(bool checked) 
+{
+    if (checked)
+    {
+        stack->setCurrentIndex(6);
+		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+		if(!docker)
+			return;
+		procedur = &Profile::timeCut;
+	}
+}
+
+QWidget* ProceduresDialog::createDcshift()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	auto page = new QWidget;
+	auto layout = new QVBoxLayout;
+	auto profile = getCurrentProcessing();
+
+    layout->addWidget(new QLabel("Subtract DC-shift"));
+    page->setLayout(layout);
+    
+    auto input0 = new QDoubleSpinBox;
+input0->setRange(0, profile->timeWindow);
+input0->setValue(0);
+input0->setSingleStep(0.001);
+input0->setDecimals(3);
+	
+auto input1 = new QDoubleSpinBox;
+input1->setRange(0, profile->timeWindow);
+input1->setValue(profile->timeWindow);
+input1->setSingleStep(0.001);
+input1->setDecimals(3);
+//inputs
+    auto hLayout1_0 = new QHBoxLayout;
+    hLayout1_0->addWidget(new QLabel("Time window 1: "));
+    hLayout1_0->addWidget(input0);
+    layout->addLayout(hLayout1_0);
+auto hLayout1_1 = new QHBoxLayout;
+    hLayout1_1->addWidget(new QLabel("Time window 2: "));
+    hLayout1_1->addWidget(input1);
+    layout->addLayout(hLayout1_1);
+
+
+    auto hLayout2 = new QHBoxLayout;
+    auto procName = new QLineEdit;
+    procName->setPlaceholderText("Input processing name(blank for default)");
+
+    auto procButton = new QPushButton("Proc");
+    procButton->setStatusTip("Add processing step");
+    procButton->setFlat(true);
+    hLayout2->addWidget(procName);
+
+    QPushButton *applyButton = new QPushButton("Apply");
+    hLayout2->addWidget(applyButton);
+
+    QPushButton *applyProcButton = new QPushButton("Apply&Proc");
+    applyProcButton->setStatusTip("Apply and add to processing steps");
+    hLayout2->addWidget(applyProcButton);
+    hLayout2->addWidget(procButton);
+    layout->addLayout(hLayout2);
+
+    connect(applyButton, &QPushButton::clicked, this, [=](){
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input0->value(), input1->value());
+            if(!proccessedProf)
+                return;
+            apply(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(false);
+            });
+
+    connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input0->value(), input1->value());
+            if(!proccessedProf)
+                return;
+            applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(true);
+
+        });
+
+    connect(procButton, &QPushButton::clicked, this, [=]() {
+            addProcessing(docker, procButton);
+        });
+
+    return page;
+
+}
+
+
+QWidget* ProceduresDialog::createDewow()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	auto page = new QWidget;
+	auto layout = new QVBoxLayout;
+	auto profile = getCurrentProcessing();
+
+    layout->addWidget(new QLabel("Subtract mean (dewow)"));
+    page->setLayout(layout);
+    
+    auto input2 = new QDoubleSpinBox;
+input2->setRange(0, profile->timeWindow);
+input2->setValue(0);
+input2->setSingleStep(0.001);
+input2->setDecimals(3);
+//inputs
+    auto hLayout1_0 = new QHBoxLayout;
+    hLayout1_0->addWidget(new QLabel("Time window 1: "));
+    hLayout1_0->addWidget(input2);
+    layout->addLayout(hLayout1_0);
+
+
+    auto hLayout2 = new QHBoxLayout;
+    auto procName = new QLineEdit;
+    procName->setPlaceholderText("Input processing name(blank for default)");
+
+    auto procButton = new QPushButton("Proc");
+    procButton->setStatusTip("Add processing step");
+    procButton->setFlat(true);
+    hLayout2->addWidget(procName);
+
+    QPushButton *applyButton = new QPushButton("Apply");
+    hLayout2->addWidget(applyButton);
+
+    QPushButton *applyProcButton = new QPushButton("Apply&Proc");
+    applyProcButton->setStatusTip("Apply and add to processing steps");
+    hLayout2->addWidget(applyProcButton);
+    hLayout2->addWidget(procButton);
+    layout->addLayout(hLayout2);
+
+    connect(applyButton, &QPushButton::clicked, this, [=](){
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input2->value());
+            if(!proccessedProf)
+                return;
+            apply(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(false);
+            });
+
+    connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input2->value());
+            if(!proccessedProf)
+                return;
+            applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(true);
+
+        });
+
+    connect(procButton, &QPushButton::clicked, this, [=]() {
+            addProcessing(docker, procButton);
+        });
+
+    return page;
+
+}
+
+
+QWidget* ProceduresDialog::createGain()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	auto page = new QWidget;
+	auto layout = new QVBoxLayout;
+	auto profile = getCurrentProcessing();
+
+    layout->addWidget(new QLabel("Exponent gain"));
+    page->setLayout(layout);
+    
+    auto input3 = new QDoubleSpinBox;
+input3->setRange(0, profile->timeWindow);
+input3->setValue(0);
+input3->setSingleStep(0.001);
+input3->setDecimals(3);
+	
+auto input4 = new QDoubleSpinBox;
+input4->setRange(0, profile->timeWindow);
+input4->setValue(profile->timeWindow);
+input4->setSingleStep(0.001);
+input4->setDecimals(3);
+	
+auto input5 = new QDoubleSpinBox;
+input5->setValue(0);
+input5->setMinimum(0);
+input5->setSingleStep(0.001);
+input5->setDecimals(3);
+	
+auto input6 = new QSpinBox;
+input6->setRange(0, 100000000);
+input6->setValue(100000);
+//inputs
+    auto hLayout1_0 = new QHBoxLayout;
+    hLayout1_0->addWidget(new QLabel("Start time: "));
+    hLayout1_0->addWidget(input3);
+    layout->addLayout(hLayout1_0);
+auto hLayout1_1 = new QHBoxLayout;
+    hLayout1_1->addWidget(new QLabel("End time: "));
+    hLayout1_1->addWidget(input4);
+    layout->addLayout(hLayout1_1);
+auto hLayout1_2 = new QHBoxLayout;
+    hLayout1_2->addWidget(new QLabel("Exponent: "));
+    hLayout1_2->addWidget(input5);
+    layout->addLayout(hLayout1_2);
+auto hLayout1_3 = new QHBoxLayout;
+    hLayout1_3->addWidget(new QLabel("Max value: "));
+    hLayout1_3->addWidget(input6);
+    layout->addLayout(hLayout1_3);
+
+
+    auto hLayout2 = new QHBoxLayout;
+    auto procName = new QLineEdit;
+    procName->setPlaceholderText("Input processing name(blank for default)");
+
+    auto procButton = new QPushButton("Proc");
+    procButton->setStatusTip("Add processing step");
+    procButton->setFlat(true);
+    hLayout2->addWidget(procName);
+
+    QPushButton *applyButton = new QPushButton("Apply");
+    hLayout2->addWidget(applyButton);
+
+    QPushButton *applyProcButton = new QPushButton("Apply&Proc");
+    applyProcButton->setStatusTip("Apply and add to processing steps");
+    hLayout2->addWidget(applyProcButton);
+    hLayout2->addWidget(procButton);
+    layout->addLayout(hLayout2);
+
+    connect(applyButton, &QPushButton::clicked, this, [=](){
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double, double, double)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input3->value(), input4->value(), input5->value(), input6->value());
+            if(!proccessedProf)
+                return;
+            apply(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(false);
+            });
+
+    connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double, double, double)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input3->value(), input4->value(), input5->value(), input6->value());
+            if(!proccessedProf)
+                return;
+            applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(true);
+
+        });
+
+    connect(procButton, &QPushButton::clicked, this, [=]() {
+            addProcessing(docker, procButton);
+        });
+
+    return page;
+
+}
+
+
+QWidget* ProceduresDialog::createAmplitudesto0()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	auto page = new QWidget;
+	auto layout = new QVBoxLayout;
+	auto profile = getCurrentProcessing();
+
+    layout->addWidget(new QLabel("Amplitudes to 0"));
+    page->setLayout(layout);
+    
+        double maxVal = profile->maxAmplitude();
+        double minVal = profile->minAmplitude();
+        double range = sqrt(maxVal*maxVal-minVal*minVal);
+    
+    auto input7 = new QDoubleSpinBox;
+input7->setRange(minVal, maxVal);
+input7->setValue(minVal);
+input7->setSingleStep(range/1000);
+input7->setDecimals(3);
+	
+auto input8 = new QDoubleSpinBox;
+input8->setRange(minVal, maxVal);
+input8->setValue(maxVal);
+input8->setSingleStep(range/1000);
+input8->setDecimals(3);
+//inputs
+    auto hLayout1_0 = new QHBoxLayout;
+    hLayout1_0->addWidget(new QLabel("Min amplitude: "));
+    hLayout1_0->addWidget(input7);
+    layout->addLayout(hLayout1_0);
+auto hLayout1_1 = new QHBoxLayout;
+    hLayout1_1->addWidget(new QLabel("Max amplitude: "));
+    hLayout1_1->addWidget(input8);
+    layout->addLayout(hLayout1_1);
+
+
+    auto hLayout2 = new QHBoxLayout;
+    auto procName = new QLineEdit;
+    procName->setPlaceholderText("Input processing name(blank for default)");
+
+    auto procButton = new QPushButton("Proc");
+    procButton->setStatusTip("Add processing step");
+    procButton->setFlat(true);
+    hLayout2->addWidget(procName);
+
+    QPushButton *applyButton = new QPushButton("Apply");
+    hLayout2->addWidget(applyButton);
+
+    QPushButton *applyProcButton = new QPushButton("Apply&Proc");
+    applyProcButton->setStatusTip("Apply and add to processing steps");
+    hLayout2->addWidget(applyProcButton);
+    hLayout2->addWidget(procButton);
+    layout->addLayout(hLayout2);
+
+    connect(applyButton, &QPushButton::clicked, this, [=](){
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double )>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input7->value(), input8->value());
+            if(!proccessedProf)
+                return;
+            apply(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(false);
+            });
+
+    connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double, double )>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input7->value(), input8->value());
+            if(!proccessedProf)
+                return;
+            applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(true);
+
+        });
+
+    connect(procButton, &QPushButton::clicked, this, [=]() {
+            addProcessing(docker, procButton);
+        });
+
+    return page;
+
+}
+
+
+QWidget* ProceduresDialog::createXflip()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	auto page = new QWidget;
+	auto layout = new QVBoxLayout;
+	auto profile = getCurrentProcessing();
+
+    layout->addWidget(new QLabel("X(traces) flip"));
+    page->setLayout(layout);
+    
+    //inputs
+    
+
+    auto hLayout2 = new QHBoxLayout;
+    auto procName = new QLineEdit;
+    procName->setPlaceholderText("Input processing name(blank for default)");
+
+    auto procButton = new QPushButton("Proc");
+    procButton->setStatusTip("Add processing step");
+    procButton->setFlat(true);
+    hLayout2->addWidget(procName);
+
+    QPushButton *applyButton = new QPushButton("Apply");
+    hLayout2->addWidget(applyButton);
+
+    QPushButton *applyProcButton = new QPushButton("Apply&Proc");
+    applyProcButton->setStatusTip("Apply and add to processing steps");
+    hLayout2->addWidget(applyProcButton);
+    hLayout2->addWidget(procButton);
+    layout->addLayout(hLayout2);
+
+    connect(applyButton, &QPushButton::clicked, this, [=](){
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)()>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)();
+            if(!proccessedProf)
+                return;
+            apply(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(false);
+            });
+
+    connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)()>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)();
+            if(!proccessedProf)
+                return;
+            applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(true);
+
+        });
+
+    connect(procButton, &QPushButton::clicked, this, [=]() {
+            addProcessing(docker, procButton);
+        });
+
+    return page;
+
+}
+
+
+QWidget* ProceduresDialog::createYflip()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	auto page = new QWidget;
+	auto layout = new QVBoxLayout;
+	auto profile = getCurrentProcessing();
+
+    layout->addWidget(new QLabel("Y(samples) flip"));
+    page->setLayout(layout);
+    
+    //inputs
+    
+
+    auto hLayout2 = new QHBoxLayout;
+    auto procName = new QLineEdit;
+    procName->setPlaceholderText("Input processing name(blank for default)");
+
+    auto procButton = new QPushButton("Proc");
+    procButton->setStatusTip("Add processing step");
+    procButton->setFlat(true);
+    hLayout2->addWidget(procName);
+
+    QPushButton *applyButton = new QPushButton("Apply");
+    hLayout2->addWidget(applyButton);
+
+    QPushButton *applyProcButton = new QPushButton("Apply&Proc");
+    applyProcButton->setStatusTip("Apply and add to processing steps");
+    hLayout2->addWidget(applyProcButton);
+    hLayout2->addWidget(procButton);
+    layout->addLayout(hLayout2);
+
+    connect(applyButton, &QPushButton::clicked, this, [=](){
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)()>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)();
+            if(!proccessedProf)
+                return;
+            apply(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(false);
+            });
+
+    connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)()>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)();
+            if(!proccessedProf)
+                return;
+            applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(true);
+
+        });
+
+    connect(procButton, &QPushButton::clicked, this, [=]() {
+            addProcessing(docker, procButton);
+        });
+
+    return page;
+
+}
+
+
+QWidget* ProceduresDialog::createTimecut()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	auto page = new QWidget;
+	auto layout = new QVBoxLayout;
+	auto profile = getCurrentProcessing();
+
+    layout->addWidget(new QLabel("Time cut"));
+    page->setLayout(layout);
+    
+    auto input9 = new QDoubleSpinBox;
+input9->setRange(0, profile->timeWindow*10);
+input9->setValue(profile->timeWindow);
+input9->setSingleStep(profile->timeWindow/profile->samples);
+input9->setDecimals(3);
+//inputs
+    auto hLayout1_0 = new QHBoxLayout;
+    hLayout1_0->addWidget(new QLabel("Time to cut: "));
+    hLayout1_0->addWidget(input9);
+    layout->addLayout(hLayout1_0);
+
+
+    auto hLayout2 = new QHBoxLayout;
+    auto procName = new QLineEdit;
+    procName->setPlaceholderText("Input processing name(blank for default)");
+
+    auto procButton = new QPushButton("Proc");
+    procButton->setStatusTip("Add processing step");
+    procButton->setFlat(true);
+    hLayout2->addWidget(procName);
+
+    QPushButton *applyButton = new QPushButton("Apply");
+    hLayout2->addWidget(applyButton);
+
+    QPushButton *applyProcButton = new QPushButton("Apply&Proc");
+    applyProcButton->setStatusTip("Apply and add to processing steps");
+    hLayout2->addWidget(applyProcButton);
+    hLayout2->addWidget(procButton);
+    layout->addLayout(hLayout2);
+
+    connect(applyButton, &QPushButton::clicked, this, [=](){
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input9->value());
+            if(!proccessedProf)
+                return;
+            apply(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(false);
+            });
+
+    connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(double)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input9->value());
+            if(!proccessedProf)
+                return;
+            applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(true);
+
+        });
+
+    connect(procButton, &QPushButton::clicked, this, [=]() {
+            addProcessing(docker, procButton);
+        });
+
+    return page;
+
+}
+

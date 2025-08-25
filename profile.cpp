@@ -96,6 +96,15 @@ Profile::Profile(Profile&& prof)
 	init = true;
 }
 
+Profile::Profile(size_t tr, size_t samp, double tWin, double *buf) :
+	traces(tr), samples(samp), timeWindow(tWin), data(buf)
+{
+	readTimeDomain();
+	picks = naivePicking();
+	init = true;
+}
+
+
 Profile::Profile(Profile *prof, double *buf)
 {
 	path = prof->path;
@@ -213,8 +222,8 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QC
 	imagePlot->xAxis->setLabel("x");
 	imagePlot->yAxis->setLabel("y");
 	imagePlot->yAxis->setRangeReversed(true);
-	QCPRange *samplesRange = new QCPRange(1, samples);
-	QCPRange *tracesRange = new QCPRange(1, traces);
+	QCPRange *samplesRange = new QCPRange(0, samples-1 ? samples-1 : 1);
+	QCPRange *tracesRange = new QCPRange(0,  traces-1 ? traces-1 : 1);
 	QCPColorGradient gradient;
 	gradient.loadPreset(gradType);
 	QCPColorMapData *mapData = new QCPColorMapData(traces, samples, *tracesRange, *samplesRange);
@@ -308,11 +317,11 @@ void Profile::open_gssi(std::string name)
 		moveOff = 0;
 	}
 	if(hdr.rh_bits == 8)
-		read_typed_data<uint8_t>(in, sz, moveOff);
+		data = read_typed_data<uint8_t>(in, sz, moveOff);
 	else if(hdr.rh_bits == 16)
-		read_typed_data<uint16_t>(in, sz, moveOff);
+		data = read_typed_data<uint16_t>(in, sz, moveOff);
 	else if(hdr.rh_bits == 32)
-		read_typed_data<int32_t>(in, sz, moveOff);
+		data = read_typed_data<int32_t>(in, sz, moveOff);
 	traces = sz/samples;
 
 	std::ifstream inDzx = open_both_cases(name, ".DZX"); 
@@ -322,14 +331,11 @@ void Profile::open_gssi(std::string name)
 	}
 	else
 	{
-		double max = 0;
-		for(size_t i=0; i<traces; i++)
-			if(data[i*samples+1] > 0)
-				marks.push_back(i);
-		if(marks.size() == traces) // all marks 
-			marks.clear();
+		readMarks(in, channel, offset, &hdr);
 		
-		size_t zero = hdr.rh_zero ? hdr.rh_zero : 2;
+		size_t zero = hdr.rh_zero ? hdr.rh_zero : 0;
+		if(zero >= samples)
+			zero = 2;
 		double *buf = fftw_alloc_real(traces*(samples-zero));
 		for(size_t i=0; i<traces; i++)
 			for(size_t j=0; j<samples; j++)
@@ -344,6 +350,83 @@ void Profile::open_gssi(std::string name)
 	readTimeDomain();
 }
 
+
+void Profile::readMarks(std::ifstream &in, int channel, size_t offset, tagRFHeader *hdr)
+{
+	if(channel == 1)
+	{
+		if(hdr->rh_bits == 32)
+		{
+			for(size_t i=0; i<traces; i++)
+				if(data[i*samples+1] > 0)
+					marks.push_back(i);
+
+			if(marks.size() == traces) // all marks 
+				marks.clear();
+		}
+		else
+			readMarksFromUnsigned(data, hdr->rh_bits);
+	}
+	else
+	{
+		double *buf;
+		size_t sz = samples*traces;
+		in.seekg(offset-samples*(hdr->rh_bits/8), std::ios_base::beg);
+		size_t moveOff = samples*(hdr->rh_nchan-1);
+		if(hdr->rh_bits == 8)
+		{
+			buf = read_typed_data<uint8_t>(in, sz, moveOff);
+			readMarksFromUnsigned(data, hdr->rh_bits);
+		}
+		else if(hdr->rh_bits == 16)
+		{
+			buf = read_typed_data<uint16_t>(in, sz, moveOff);
+			readMarksFromUnsigned(data, hdr->rh_bits);
+		}
+		else if(hdr->rh_bits == 32)
+		{
+			buf = read_typed_data<int32_t>(in, sz, moveOff);
+
+			for(size_t i=0; i<traces; i++)
+				if(buf[i*samples+1] > 0)
+					marks.push_back(i);
+			if(marks.size() == traces) // all marks 
+				marks.clear();
+			fftw_free(buf);
+		}
+	}
+}
+
+struct __attribute__((packed)) TraceValues {
+    uint16_t normal_first;
+    uint16_t normal_second;
+    uint16_t marker_first;
+    uint16_t marker_second;
+};
+
+void Profile::readMarksFromUnsigned(double *dt, int16_t bits)
+{
+	std::pair<double, size_t> ty1, ty2;
+	ty1.first = dt[1];
+	ty1.second = 1;
+	ty2.first = dt[samples+1];
+	ty2.second = 1;
+	if(ty1.first == ty2.first)
+		return;
+	for(size_t i=2; i<traces; i++)
+		if(dt[i*samples+1] == ty1.first)
+			ty1.second++;
+		else if(dt[i*samples+1] == ty2.first)
+			ty2.second++;
+
+	double marker = ty1.second > ty2.second ? ty2.first : ty1.first;
+
+	for(size_t i=0; i<traces; i++)
+		if(dt[i*samples+1] == marker)
+			marks.push_back(i);
+	if(marks.size() == traces) // all marks 
+		marks.clear();
+}
 
 void Profile::open_ss(std::string name)
 {
@@ -765,6 +848,42 @@ std::shared_ptr<Profile> Profile::yFlip()
 		}
 	return std::make_shared<Profile>(this, filtered);
 }
+
+std::shared_ptr<Profile> Profile::timeCut(double t)
+{
+	if(t < 0)
+		return std::shared_ptr<Profile>{};
+	double sampTime = timeWindow/samples;
+
+	double *filtered;
+	size_t newSamples;
+	if(t >= timeWindow)
+	{
+		newSamples = samples+static_cast<size_t>((t-timeWindow)/sampTime)+1;
+		filtered = fftw_alloc_real(newSamples*traces);
+		for(size_t i=0; i<traces; i++)
+			for(size_t j=0; j<newSamples; j++)
+				filtered[i*newSamples+j] = j < samples ? data[i*samples+j] : 0;
+	}
+	else
+	{
+		newSamples = static_cast<size_t>(t/sampTime)+1;
+		filtered = fftw_alloc_real(newSamples*traces);
+		for(size_t i=0; i<traces; i++)
+			for(size_t j=0; j<samples; j++)
+			{
+				if(j >= newSamples)
+					break;
+				filtered[i*newSamples+j] = data[i*samples+j];
+			}
+	}
+	std::cout << "time cut, samples" << newSamples << "\n";
+	auto prof = std::make_shared<Profile>(traces, newSamples, timeWindow, filtered);
+	if(marks.size())
+		prof->marks = marks;
+	return prof;
+}
+
 
 size_t* Profile::naivePicking()
 {

@@ -22,7 +22,7 @@ private slots:
 
 private:
 	using SlotType = void (ProceduresDialog::*)(bool);
-	std::array<SlotType, 6> onProcSlots = {{
+	std::array<SlotType, {}> onProcSlots = {{
 	    {} // slots functions	
 	}};
 	QTabWidget *tabWidget;

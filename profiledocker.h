@@ -24,6 +24,7 @@ class ProfileDocker : public ads::CDockManager
 {
 	Q_OBJECT
 
+	friend class ProceduresDialog;
 public:
 	ProfileDocker(QString name, QWidget* parent = nullptr);
 	~ProfileDocker();
