@@ -3,6 +3,7 @@
 
 #include "formats.h"
 #include "qcustomplot.h"
+#include "pugixml.hpp"
 #include <memory>
 #include <iostream>
 #include <fstream>
@@ -60,7 +61,8 @@ private:
 	void read_hd(std::string);
 	void readTimeDomain();
 	void readMarks(std::ifstream&, int, size_t, tagRFHeader *);
-	void readMarksFromUnsigned(double*, int16_t); 
+	void detectMarks(double*); 
+	std::vector<size_t> readMarksFromDzx(std::string);
 	template<class T>
 	void read_rd37()
 	{
@@ -80,8 +82,8 @@ private:
 	template<class T>
 	double* read_typed_data(std::ifstream &in, size_t sz, size_t offset=0)
 	{
-		double *data = fftw_alloc_real(sz);
-		if(!data)
+		double *dt = fftw_alloc_real(sz);
+		if(!dt)
 			throw std::runtime_error("No memory");
 		for(int i=0; i<sz; i++)
 		{
@@ -89,9 +91,9 @@ private:
 				in.seekg(offset*sizeof(T), std::ios_base::cur);
 			T buf;
 			in.read(reinterpret_cast<char*>(&buf), sizeof(T));
-			data[i] = buf;
+			dt[i] = buf;
 		}
-		return data;
+		return dt;
 	}
 	
 };

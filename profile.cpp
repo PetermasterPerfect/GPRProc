@@ -324,48 +324,130 @@ void Profile::open_gssi(std::string name)
 		data = read_typed_data<int32_t>(in, sz, moveOff);
 	traces = sz/samples;
 
-	std::ifstream inDzx = open_both_cases(name, ".DZX"); 
-	if(inDzx)
+
+	readMarks(in, channel, offset, &hdr);
+	if(!marks.size())
 	{
-		std::cerr << "NOT IMPLEMENTED\n";
+		std::ifstream inDzx = open_both_cases(name, ".DZX"); 
+		if(inDzx)
+		{
+			std::ostringstream oss;
+			oss << inDzx.rdbuf(); 
+			try 
+			{
+				marks = readMarksFromDzx(oss.str());
+			}
+			catch(const std::exception& e)
+			{
+				std::cerr << "Could not find marks in dzx file\n";
+			}
+		}
 	}
 	else
-	{
-		readMarks(in, channel, offset, &hdr);
-		
+	{	
 		size_t zero = hdr.rh_zero ? hdr.rh_zero : 0;
 		if(zero >= samples)
-			zero = 2;
-		double *buf = fftw_alloc_real(traces*(samples-zero));
-		for(size_t i=0; i<traces; i++)
-			for(size_t j=0; j<samples; j++)
-				if(j>=zero)
-					buf[i*(samples-zero)+(j-zero)] = data[i*samples+j];
-		samples-=zero;
+			zero = 0;
+		if(zero)
+		{
+			double *buf = fftw_alloc_real(traces*(samples-zero));
+			for(size_t i=0; i<traces; i++)
+				for(size_t j=0; j<samples; j++)
+					if(j>=zero)
+						buf[i*(samples-zero)+(j-zero)] = data[i*samples+j];
+			samples-=zero;
 
-		fftw_free(data);
-		data = buf;
+			fftw_free(data);
+			data = buf;
+		}
 	}
-
 	readTimeDomain();
 }
 
+std::vector<size_t> Profile::readMarksFromDzx(std::string source)
+{
+    std::vector<size_t> dzxmarks;
+
+    pugi::xml_document doc;
+    pugi::xml_parse_result result = doc.load_string(source.c_str());
+    if (!result)
+    {
+        throw std::runtime_error("Error while parsing xml");
+    }
+
+    pugi::xml_node root = doc.document_element();
+
+    try
+    {
+        for (pugi::xml_node item : root.children("TargetGroup"))
+        {
+            for (pugi::xml_node child : item.children())
+            {
+                std::string tag(child.name());
+                if (tag.find("TargetWayPt") != std::string::npos)
+                {
+                    for (pugi::xml_node gchild : child.children())
+                    {
+                        std::string gtag(gchild.name());
+                        if (gtag.find("scanSampChanProp") != std::string::npos)
+                        {
+                            std::string text = gchild.text().as_string();
+                            if (!text.empty())
+                            {
+                                size_t val;
+                                sscanf(text.substr(0, text.find(',')).c_str(), "%zu", &val);
+                                if (val < traces)
+                                    dzxmarks.push_back(val);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (dzxmarks.size() <= 1)
+            throw std::runtime_error("not enough marks");
+    }
+    catch (const std::exception& e)
+    {
+        for (pugi::xml_node item : root.children("File"))
+        {
+            for (pugi::xml_node child : item.children())
+            {
+                std::string tag(child.name());
+                if (tag.find("Profile") != std::string::npos)
+                {
+                    for (pugi::xml_node gchild : child.children())
+                    {
+                        std::string gtag(gchild.name());
+                        if (gtag.find("WayPt") != std::string::npos)
+                        {
+                            for (pugi::xml_node ggchild : gchild.children())
+                            {
+                                std::string ggtag(ggchild.name());
+                                if (ggtag.find("scan") != std::string::npos)
+                                {
+                                    size_t val = ggchild.text().as_ullong();
+                                    if (val < traces)
+                                        dzxmarks.push_back(val);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (dzxmarks.size() < 1)
+            throw std::runtime_error("not enough marks");
+    }
+    return dzxmarks;
+}
 
 void Profile::readMarks(std::ifstream &in, int channel, size_t offset, tagRFHeader *hdr)
 {
 	if(channel == 1)
 	{
-		if(hdr->rh_bits == 32)
-		{
-			for(size_t i=0; i<traces; i++)
-				if(data[i*samples+1] > 0)
-					marks.push_back(i);
-
-			if(marks.size() == traces) // all marks 
-				marks.clear();
-		}
-		else
-			readMarksFromUnsigned(data, hdr->rh_bits);
+		detectMarks(data);
 	}
 	else
 	{
@@ -376,12 +458,12 @@ void Profile::readMarks(std::ifstream &in, int channel, size_t offset, tagRFHead
 		if(hdr->rh_bits == 8)
 		{
 			buf = read_typed_data<uint8_t>(in, sz, moveOff);
-			readMarksFromUnsigned(data, hdr->rh_bits);
+			detectMarks(buf);
 		}
 		else if(hdr->rh_bits == 16)
 		{
 			buf = read_typed_data<uint16_t>(in, sz, moveOff);
-			readMarksFromUnsigned(data, hdr->rh_bits);
+			detectMarks(buf);
 		}
 		else if(hdr->rh_bits == 32)
 		{
@@ -404,7 +486,7 @@ struct __attribute__((packed)) TraceValues {
     uint16_t marker_second;
 };
 
-void Profile::readMarksFromUnsigned(double *dt, int16_t bits)
+void Profile::detectMarks(double *dt)
 {
 	std::pair<double, size_t> ty1, ty2;
 	ty1.first = dt[1];
