@@ -129,8 +129,11 @@ if __name__ == "__main__":
     time_cut.inputs = [
             In('QDoubleSpinBox','Time to cut: ', value='profile->timeWindow', rang3='0, profile->timeWindow*10', decimals='3', single_step='profile->timeWindow/profile->samples')]
 
+    move_start = Procedur("Move start time", 'moveStartTime', 'moveStartTime')
+    move_start.inputs = [
+            In('QDoubleSpinBox','Start time: ', value='0', rang3='-1*profile->timeWindow+profile->timeWindow/profile->samples, profile->timeWindow-profile->timeWindow/profile->samples', decimals='3', single_step='profile->timeWindow/profile->samples')]
 
-    temp = Template([dc, dewow, gain, ampl0, xflip, yflip, time_cut])
+    temp = Template([dc, dewow, gain, ampl0, xflip, yflip, time_cut, move_start])
     with open('proceduresdialog.h', 'w') as f:
         f.write(temp.gen_hdr())
     with open('proceduresdialog.cpp', 'w') as f:

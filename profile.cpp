@@ -61,16 +61,15 @@ Profile::Profile(Profile& prof)
 	for(size_t i=0; i<samples*traces; i++)
 		data[i] = prof.data[i];
 
-	timeDomain = new double[samples];
-	for(unsigned i=0; i<samples; i++)
-		timeDomain[i] = prof.timeDomain[i];
-
-	picks = new size_t[samples];
-	for(unsigned i=0; i<samples; i++)
-		picks[i] = prof.picks[i];
+	readTimeDomain();
+	if(prof.picks)
+	{
+		picks = new size_t[traces];
+		for(size_t i=0; i<traces; i++)
+			picks[i] = prof.picks[i];
+	}
 
 	marks = prof.marks;
-
 
 	init = true;
 }
@@ -960,12 +959,50 @@ std::shared_ptr<Profile> Profile::timeCut(double t)
 			}
 	}
 	std::cout << "time cut, samples" << newSamples << "\n";
-	auto prof = std::make_shared<Profile>(traces, newSamples, timeWindow, filtered);
+	auto prof = std::make_shared<Profile>(traces, newSamples, sampTime*newSamples, filtered);
 	if(marks.size())
 		prof->marks = marks;
 	return prof;
 }
 
+
+std::shared_ptr<Profile> Profile::moveStartTime(double t)
+{
+	if(t == 0)
+		return std::make_shared<Profile>(*this);
+	if(t > timeWindow)
+		return std::shared_ptr<Profile>{};
+	double sampTime = timeWindow/samples;
+	double *filtered;
+	size_t newSamples;
+	if(t < 0)
+	{
+		newSamples = static_cast<size_t>(-1*t/sampTime)+1;
+		filtered = fftw_alloc_real((samples-newSamples)*traces);
+		for(size_t i=0; i<traces; i++)
+			for(size_t j=newSamples; j<samples; j++)
+				filtered[i*(samples-newSamples)+j-newSamples] = data[i*samples+j];
+		newSamples = samples-newSamples;
+	}
+	else
+	{
+		newSamples = static_cast<size_t>(t/sampTime)+1;
+		filtered = fftw_alloc_real((newSamples+samples)*traces);
+		for(size_t i=0; i<traces; i++)
+			for(size_t j=0; j<newSamples; j++)
+				filtered[i*(newSamples+samples)+j] = 0;
+		for(size_t i=0; i<traces; i++)
+			for(size_t j=newSamples; j<newSamples+samples; j++)
+				filtered[i*(newSamples+samples)+j] = data[i*samples+j-newSamples];
+		newSamples+=samples;
+	}
+	std::cout << "time cut, samples" << newSamples << "\n";
+	auto prof = std::make_shared<Profile>(traces, newSamples, sampTime*newSamples, filtered);
+	if(marks.size())
+		prof->marks = marks;
+	return prof;
+
+}
 
 size_t* Profile::naivePicking()
 {

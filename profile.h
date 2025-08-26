@@ -38,6 +38,7 @@ struct Profile
 	std::shared_ptr<Profile> xFlip();
 	std::shared_ptr<Profile> yFlip();
 	std::shared_ptr<Profile> timeCut(double);
+	std::shared_ptr<Profile> moveStartTime(double);
 
 	size_t* naivePicking();
 	double* maxSamplePerTrace();
