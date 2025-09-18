@@ -352,7 +352,7 @@ void MainWindow::createToolbar()
 	scaleSpinBox->setDecimals(3);
 	scaleSpinBox->setMinimum(0.000001);
 	toolBar->addWidget(scaleSpinBox);
-	connect(scaleSpinBox, &QDoubleSpinBox::valueChanged, this, [=](double val){
+	connect(scaleSpinBox, &QDoubleSpinBox::valueChanged, this, [=](float val){
 			auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
 			if(!docker)
 				return;

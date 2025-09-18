@@ -11,7 +11,7 @@ ProfileDocker::~ProfileDocker()
 	if(anonymousProc.second)
 	{
 		if(anonymousProc.second->data)
-			fftw_free(anonymousProc.second->data);
+			fftwf_free(anonymousProc.second->data);
 		anonymousProc.second->data = nullptr;
 	}
 }
@@ -22,7 +22,7 @@ void ProfileDocker::replot()
 	replot(scale, traceNormalization, userMarks);
 }
 
-void ProfileDocker::replot(double sc)
+void ProfileDocker::replot(float sc)
 {
 	replot(sc, traceNormalization, userMarks);
 }
@@ -37,7 +37,7 @@ void ProfileDocker::replotMarks(bool marks)
 	replot(scale, traceNormalization, marks);
 }
 
-void ProfileDocker::replot(double sc, bool traceNorm, bool marks)
+void ProfileDocker::replot(float sc, bool traceNorm, bool marks)
 {
 	for(auto widget : dockWidgets())
 	{
@@ -84,13 +84,13 @@ void ProfileDocker::replot(double sc, bool traceNorm, bool marks)
 			}
 			if(sc != scale || traceNorm != traceNormalization)
 			{
-				double *norm = nullptr;
+				float *norm = nullptr;
 				if(traceNorm)
 					norm = profile->maxSamplePerTrace();
 				for(size_t i=0; i<profile->traces; i++)
 					for(size_t j=0; j<profile->samples; j++)
 					{
-						double cell = profile->data[i*profile->samples+j];
+						float cell = profile->data[i*profile->samples+j];
 						if(norm)
 							mapData->setCell(i, j, cell/norm[i]);
 						else
@@ -101,7 +101,7 @@ void ProfileDocker::replot(double sc, bool traceNorm, bool marks)
 				for(size_t i=0; i<profile->traces; i++)
 					for(size_t j=0; j<profile->samples; j++)
 					{
-						double cell = profile->data[i*profile->samples+j];
+						float cell = profile->data[i*profile->samples+j];
 						if(norm)
 							mapData->setCell(i, j, (cell/norm[i])*sc);
 						else

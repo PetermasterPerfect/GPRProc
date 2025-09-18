@@ -1,3 +1,6 @@
 [submodule "thirdparty/Qt-Advanced-Docking-System"]
 	path = thirdparty/Qt-Advanced-Docking-System
 	url = https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System
+[submodule "thirdparty/liquid-dsp"]
+	path = thirdparty/liquid-dsp
+	url = https://github.com/jgaeddert/liquid-dsp.git

@@ -31,7 +31,7 @@ target_link_libraries(GPRProc PRIVATE
     Qt6::Widgets
 	Qt6::PrintSupport
 	qtadvanceddocking-qt6
-	fftw3
+	fftw3f
 )
 
 

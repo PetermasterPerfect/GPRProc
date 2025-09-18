@@ -34,16 +34,16 @@ public:
 	bool traceNormalization = false;
 	bool colorScale = false;
 	bool userMarks = false;
-	double scale = 1;
+	float scale = 1;
 	QCPColorGradient::GradientPreset gradType = QCPColorGradient::gpGrayscale;
 	std::map<QCustomPlot*, QCPColorMap*> radargram2ColorMap;
 	std::map<QString, std::shared_ptr<Profile>> processingSteps;
 	std::pair<QString, std::shared_ptr<Profile>> anonymousProc;
 
 	void replot();
-	void replot(double);
+	void replot(float);
 	void replot(bool);
-	void replot(double, bool, bool);
+	void replot(float, bool, bool);
 	void replotMarks(bool);
 	void removeColorMap(QCustomPlot*);
 	bool containsMarks();

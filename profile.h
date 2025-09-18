@@ -22,34 +22,34 @@ struct Profile
 	std::string path;
 	size_t samples;
 	size_t traces;
-	double timeWindow;
-	double *data = nullptr;
-	double *timeDomain = nullptr;
+	float timeWindow;
+	float *data = nullptr;
+	float *timeDomain = nullptr;
 	size_t *picks = nullptr;
 	std::vector<size_t> marks;
 
 	std::pair<QVector<double>, QVector<double>> prepareWiggleData(size_t, char);
 	QCustomPlot* createWiggle(size_t, char type=0);
-	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale, double scale=1);
-	std::shared_ptr<Profile> subtractDcShift(double, double);
-	std::shared_ptr<Profile> subtractDewow(double);
-	std::shared_ptr<Profile> gainFunction(double, double, double, double);
-	std::shared_ptr<Profile> ampltitudesTo0(double, double );
+	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale, float scale=1);
+	std::shared_ptr<Profile> subtractDcShift(float, float);
+	std::shared_ptr<Profile> subtractDewow(float);
+	std::shared_ptr<Profile> gainFunction(float, float, float, float);
+	std::shared_ptr<Profile> ampltitudesTo0(float, float );
 	std::shared_ptr<Profile> xFlip();
 	std::shared_ptr<Profile> yFlip();
-	std::shared_ptr<Profile> timeCut(double);
-	std::shared_ptr<Profile> moveStartTime(double);
+	std::shared_ptr<Profile> timeCut(float);
+	std::shared_ptr<Profile> moveStartTime(float);
 
 	size_t* naivePicking();
-	double* maxSamplePerTrace();
-	double maxAmplitude();
-	double minAmplitude();
+	float* maxSamplePerTrace();
+	float maxAmplitude();
+	float minAmplitude();
 	Profile() {}
 	Profile(Profile&);
 	Profile(Profile&&);
-	Profile(Profile*, double*);
+	Profile(Profile*, float*);
 	Profile(std::string);
-	Profile(size_t, size_t, double, double*);
+	Profile(size_t, size_t, float, float*);
 	~Profile();
 private:
 	bool init = false;
@@ -62,7 +62,7 @@ private:
 	void read_hd(std::string);
 	void readTimeDomain();
 	void readMarks(std::ifstream&, int, size_t, tagRFHeader *);
-	void detectMarks(double*); 
+	void detectMarks(float*); 
 	std::vector<size_t> readMarksFromDzx(std::string);
 	template<class T>
 	void read_rd37()
@@ -81,9 +81,9 @@ private:
 	}
 	
 	template<class T>
-	double* read_typed_data(std::ifstream &in, size_t sz, size_t offset=0)
+	float* read_typed_data(std::ifstream &in, size_t sz, size_t offset=0)
 	{
-		double *dt = fftw_alloc_real(sz);
+		float *dt = (float*) fftwf_malloc(sizeof(float)*sz);
 		if(!dt)
 			throw std::runtime_error("No memory");
 		for(int i=0; i<sz; i++)

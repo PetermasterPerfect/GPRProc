@@ -115,9 +115,9 @@ if __name__ == "__main__":
 
     ampl0 = Procedur("Amplitudes to 0", 'amplitudesTo0', 'ampltitudesTo0')
     ampl0.extra = """
-        double maxVal = profile->maxAmplitude();
-        double minVal = profile->minAmplitude();
-        double range = sqrt(maxVal*maxVal-minVal*minVal);
+        float maxVal = profile->maxAmplitude();
+        float minVal = profile->minAmplitude();
+        float range = sqrt(maxVal*maxVal-minVal*minVal);
     """
     ampl0.inputs = [
             In('QDoubleSpinBox','Min amplitude: ', value='minVal', rang3='minVal, maxVal', decimals='3', single_step='range/1000'),

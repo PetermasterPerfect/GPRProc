@@ -55,7 +55,7 @@ Profile::Profile(Profile& prof)
 	samples = prof.samples;
 	traces = prof.traces;
 	timeWindow = prof.timeWindow;
-	data = fftw_alloc_real(samples*traces);
+	data = (float*) fftwf_malloc(samples*traces*sizeof(float));
 	if(!data)
 		throw std::runtime_error("Memory allocation error");
 	for(size_t i=0; i<samples*traces; i++)
@@ -95,7 +95,7 @@ Profile::Profile(Profile&& prof)
 	init = true;
 }
 
-Profile::Profile(size_t tr, size_t samp, double tWin, double *buf) :
+Profile::Profile(size_t tr, size_t samp, float tWin, float *buf) :
 	traces(tr), samples(samp), timeWindow(tWin), data(buf)
 {
 	readTimeDomain();
@@ -104,7 +104,7 @@ Profile::Profile(size_t tr, size_t samp, double tWin, double *buf) :
 }
 
 
-Profile::Profile(Profile *prof, double *buf)
+Profile::Profile(Profile *prof, float *buf)
 {
 	path = prof->path;
 	samples = prof->samples;
@@ -112,7 +112,7 @@ Profile::Profile(Profile *prof, double *buf)
 	timeWindow = prof->timeWindow;
 	data = buf;
 
-	timeDomain = new double[samples];
+	timeDomain = new float[samples];
 	for(unsigned i=0; i<samples; i++)
 		timeDomain[i] = prof->timeDomain[i];
 
@@ -125,7 +125,7 @@ Profile::Profile(Profile *prof, double *buf)
 Profile::~Profile()
 {
 	if(data)
-		fftw_free(data);
+		fftwf_free(data);
 	data = nullptr;
 
 	if(timeDomain)
@@ -151,14 +151,14 @@ std::pair<QVector<double>, QVector<double>> Profile::prepareWiggleData(size_t n,
 		break;
 	case 1: // amplitude
 	case 2:
-		fftw_plan p;
-		fftw_complex *fourier = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * traces*samples);
-		double *trace = fftw_alloc_real(samples);
+		fftwf_plan p;
+		fftwf_complex *fourier = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * traces*samples);
+		float *trace = (float*) fftwf_malloc(sizeof(float)*samples);
 		for (int i=0; i<samples; ++i)
 			trace[i] = data[n*samples+i];
 
-		p = fftw_plan_dft_r2c_1d(samples, trace, fourier, FFTW_ESTIMATE);
-		fftw_execute(p);
+		p = fftwf_plan_dft_r2c_1d(samples, trace, fourier, FFTW_ESTIMATE);
+		fftwf_execute(p);
 		for (int i=0; i<samples/2; ++i)
 		{
 			x[i] = i;
@@ -167,9 +167,9 @@ std::pair<QVector<double>, QVector<double>> Profile::prepareWiggleData(size_t n,
 			else
 				y[i] = atan2(fourier[i][1], fourier[i][0]);
 		}
-		fftw_destroy_plan(p);
-		fftw_free(fourier);
-		fftw_free(trace);
+		fftwf_destroy_plan(p);
+		fftwf_free(fourier);
+		fftwf_free(trace);
 		break;
 	}
 
@@ -210,7 +210,7 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 	return wigglePlot;
 }
 
-std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QCPColorGradient::GradientPreset gradType, double scale)
+std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QCPColorGradient::GradientPreset gradType, float scale)
 {
 	if(!init)
 		return std::nullopt;
@@ -349,14 +349,14 @@ void Profile::open_gssi(std::string name)
 			zero = 0;
 		if(zero)
 		{
-			double *buf = fftw_alloc_real(traces*(samples-zero));
+			float *buf = (float*) fftwf_malloc(sizeof(float)*traces*(samples-zero));
 			for(size_t i=0; i<traces; i++)
 				for(size_t j=0; j<samples; j++)
 					if(j>=zero)
 						buf[i*(samples-zero)+(j-zero)] = data[i*samples+j];
 			samples-=zero;
 
-			fftw_free(data);
+			fftwf_free(data);
 			data = buf;
 		}
 	}
@@ -450,7 +450,7 @@ void Profile::readMarks(std::ifstream &in, int channel, size_t offset, tagRFHead
 	}
 	else
 	{
-		double *buf;
+		float *buf;
 		size_t sz = samples*traces;
 		in.seekg(offset-samples*(hdr->rh_bits/8), std::ios_base::beg);
 		size_t moveOff = samples*(hdr->rh_nchan-1);
@@ -473,7 +473,7 @@ void Profile::readMarks(std::ifstream &in, int channel, size_t offset, tagRFHead
 					marks.push_back(i);
 			if(marks.size() == traces) // all marks 
 				marks.clear();
-			fftw_free(buf);
+			fftwf_free(buf);
 		}
 	}
 }
@@ -485,9 +485,9 @@ struct __attribute__((packed)) TraceValues {
     uint16_t marker_second;
 };
 
-void Profile::detectMarks(double *dt)
+void Profile::detectMarks(float *dt)
 {
-	std::pair<double, size_t> ty1, ty2;
+	std::pair<float, size_t> ty1, ty2;
 	ty1.first = dt[1];
 	ty1.second = 1;
 	ty2.first = dt[samples+1];
@@ -500,7 +500,7 @@ void Profile::detectMarks(double *dt)
 		else if(dt[i*samples+1] == ty2.first)
 			ty2.second++;
 
-	double marker = ty1.second > ty2.second ? ty2.first : ty1.first;
+	float marker = ty1.second > ty2.second ? ty2.first : ty1.first;
 
 	for(size_t i=0; i<traces; i++)
 		if(dt[i*samples+1] == marker)
@@ -527,7 +527,7 @@ void Profile::open_ss(std::string name)
 	if(isHdr)
 	{
 		size_t sz = samples*traces;
-		data = fftw_alloc_real(sz);
+		data = (float*) fftwf_malloc(sizeof(float)*sz);
 		if(!data)
 			throw std::runtime_error("No memory");
 		for(int i=0; i<sz; i++)
@@ -558,7 +558,7 @@ void Profile::open_ss(std::string name)
 			in.seekg(0, std::ios_base::beg);
 			traces = fileSz / (sizeof(SsTraceHdrStruct)+samples*sizeof(int16_t));
 			size_t sz = samples*traces;
-			data = fftw_alloc_real(sz);
+			data = (float*) fftwf_malloc(sizeof(float)*sz);
 			if(!data)
 				throw std::runtime_error("No memory");
 			for(int i=0; i<sz; i++)
@@ -636,12 +636,12 @@ void Profile::open_mala(std::string name, bool f)
 
 void Profile::readTimeDomain()
 {
-	timeDomain = new double[samples];
+	timeDomain = new float[samples];
 	if(!timeDomain)
 		throw std::runtime_error("No memory");
 
-	double timeIt = timeWindow/samples;
-	double curTime = 0;
+	float timeIt = timeWindow/samples;
+	float curTime = 0;
 	for(unsigned i=0; i<samples; i++)
 	{
 		timeDomain[i] = curTime;
@@ -699,41 +699,41 @@ void Profile::read_rad(std::string name)
 	in.close();
 }
 
-double* Profile::maxSamplePerTrace()
+float* Profile::maxSamplePerTrace()
 {
-	double *ret = new double[traces]{};
+	float *ret = new float[traces]{};
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
 			ret[i] =  fabs(data[i*samples+j]) > ret[i] ? fabs(data[i*samples+j]) : ret[i];
 	return ret;
 }
 
-double Profile::maxAmplitude()
+float Profile::maxAmplitude()
 {
-	double ret = data[0];
+	float ret = data[0];
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
 			ret =  data[i*samples+j] > ret ? data[i*samples+j] : ret;
 	return ret;
 }
 
-double Profile::minAmplitude()
+float Profile::minAmplitude()
 {
-	double ret = data[0];
+	float ret = data[0];
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
 			ret =  data[i*samples+j] < ret ? data[i*samples+j] : ret;
 	return ret;
 }
 
-std::shared_ptr<Profile> Profile::subtractDcShift(double t1, double t2)
+std::shared_ptr<Profile> Profile::subtractDcShift(float t1, float t2)
 {
 	std::cout << "dc: " << t1 << "\n";
 	if(t1 < 0 || t2 < 0 || t1 > t2 | t1 > timeWindow || t2 > timeWindow)
 		return std::shared_ptr<Profile>{};
 
-	double *filtered = fftw_alloc_real(samples*traces);
-	std::vector<double> means;
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
+	std::vector<float> means;
 	size_t start, end;
 	bool fs, fe;
 	fs = fe = false;
@@ -753,7 +753,7 @@ std::shared_ptr<Profile> Profile::subtractDcShift(double t1, double t2)
 
 	for(size_t i=0; i<traces; i++)
 	{
-		double mean = 0;
+		float mean = 0;
 		for(size_t j=start; j<end; j++)
 			mean += data[i*samples+j];
 		means.push_back(mean/(end-start));
@@ -766,26 +766,26 @@ std::shared_ptr<Profile> Profile::subtractDcShift(double t1, double t2)
 	return std::make_shared<Profile>(this, filtered);
 }
 
-std::shared_ptr<Profile> Profile::subtractDewow(double t1)
+std::shared_ptr<Profile> Profile::subtractDewow(float t1)
 {
 	if(t1 < 0 || t1 > timeWindow)
 		return std::shared_ptr<Profile>{};
 	if(t1 <= timeWindow/samples)
 		return std::make_shared<Profile>(this, data);
-	double *filtered = fftw_alloc_real(samples*traces);
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
 	size_t windowSize;
 	size_t buf = lround(t1/(timeWindow/samples));
 	windowSize = buf%2 ? buf : buf-1;
 	if(windowSize == 1)
 	{
-		fftw_free(filtered);
+		fftwf_free(filtered);
 		return std::make_shared<Profile>(this, data);
 	}
 
-	std::vector<double> means;
+	std::vector<float> means;
 	for(size_t i=0; i<traces; i++)
 	{
-		double mean = 0;
+		float mean = 0;
 		for(size_t j=0; j<windowSize/2; j++)
 			mean += data[i*samples+j];
 		mean /= windowSize/2;
@@ -798,7 +798,7 @@ std::shared_ptr<Profile> Profile::subtractDewow(double t1)
 	means.clear();
 	for(size_t i=0; i<traces; i++)
 		{
-			double mean = 0;
+			float mean = 0;
 			for(size_t j=samples-windowSize/2; j<samples; j++)
 				mean += data[i*samples+j];
 			mean /= windowSize/2;
@@ -812,7 +812,7 @@ std::shared_ptr<Profile> Profile::subtractDewow(double t1)
 	{
 		for(size_t j=windowSize/2; j<samples-windowSize/2; j++)
 		{
-			double mean = 0;
+			float mean = 0;
 			size_t start = j-windowSize/2;
 			size_t end = j+windowSize/2;
 			for(size_t k=start; k<end; k++)
@@ -825,7 +825,7 @@ std::shared_ptr<Profile> Profile::subtractDewow(double t1)
 	return std::make_shared<Profile>(this, filtered);
 }
 
-std::shared_ptr<Profile> Profile::gainFunction(double t1, double t2, double exponent, double maxVal)
+std::shared_ptr<Profile> Profile::gainFunction(float t1, float t2, float exponent, float maxVal)
 {
 	if(t1 < 0 || t2 < 0 || t1 > t2 | t1 > timeWindow || t2 > timeWindow)
 		return std::shared_ptr<Profile>{};
@@ -845,12 +845,12 @@ std::shared_ptr<Profile> Profile::gainFunction(double t1, double t2, double expo
 		}
 	}
 	std::cout << startIdx << ", " << endIdx << " <--\n";
-	double *filtered = fftw_alloc_real(samples*traces);
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
 
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=startIdx; j<=endIdx; j++)
 		{
-			double t = timeDomain[j];
+			float t = timeDomain[j];
 			filtered[i*samples+j] = exp((t-timeDomain[startIdx])*timeDomain[1]*exponent)*data[i*samples+j];
 			
 		}
@@ -859,20 +859,20 @@ std::shared_ptr<Profile> Profile::gainFunction(double t1, double t2, double expo
 			filtered[i*samples+j] = exp((timeDomain[endIdx]-timeDomain[startIdx])*timeDomain[1]*exponent)*data[i*samples+j];
 	
 	const size_t sz = traces * samples;
-	const double mean = std::accumulate(data, data + sz, 0.0) / sz;
-	const double meanFilt = std::accumulate(filtered, filtered + sz, 0.0) / sz;
+	const float mean = std::accumulate(data, data + sz, 0.0) / sz;
+	const float meanFilt = std::accumulate(filtered, filtered + sz, 0.0) / sz;
 
-	double varianceData = std::accumulate(data, data + sz, 0.0,
-		[&](double accumulator, const double& val) {
+	float varianceData = std::accumulate(data, data + sz, 0.0,
+		[&](float accumulator, const float& val) {
 			return accumulator + (val - mean) * (val - mean);
 		}) / (sz - 1);
-	const double stdData = std::sqrt(varianceData);
+	const float stdData = std::sqrt(varianceData);
 
-	double varianceFilt = std::accumulate(filtered, filtered + sz, 0.0,
-		[&](double accumulator, const double& val) {
+	float varianceFilt = std::accumulate(filtered, filtered + sz, 0.0,
+		[&](float accumulator, const float& val) {
 			return accumulator + (val - meanFilt) * (val - meanFilt);
 		}) / (sz - 1);
-	double stdFilt = std::sqrt(varianceFilt);
+	float stdFilt = std::sqrt(varianceFilt);
 
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
@@ -886,13 +886,13 @@ std::shared_ptr<Profile> Profile::gainFunction(double t1, double t2, double expo
 
 
 
-std::shared_ptr<Profile> Profile::ampltitudesTo0(double amplMin, double amplMax)
+std::shared_ptr<Profile> Profile::ampltitudesTo0(float amplMin, float amplMax)
 {
 	if(amplMin > amplMax)
 		return std::shared_ptr<Profile>{};
 
-	double *filtered = fftw_alloc_real(samples*traces);
-	memcpy(filtered, data, traces*samples*sizeof(double));
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
+	memcpy(filtered, data, traces*samples*sizeof(float));
 
 	for(size_t i=0; i<traces*samples; i++)
 		if(data[i] >= amplMin && data[i] <= amplMax)
@@ -904,7 +904,7 @@ std::shared_ptr<Profile> Profile::ampltitudesTo0(double amplMin, double amplMax)
 
 std::shared_ptr<Profile> Profile::xFlip()
 {
-	double *filtered = fftw_alloc_real(samples*traces);
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
 
 	for(size_t i=traces-1; i>=0; i--)
 	{
@@ -918,7 +918,7 @@ std::shared_ptr<Profile> Profile::xFlip()
 
 std::shared_ptr<Profile> Profile::yFlip()
 {
-	double *filtered = fftw_alloc_real(samples*traces);
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
 
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=samples-1; j>=0; j--)
@@ -930,18 +930,18 @@ std::shared_ptr<Profile> Profile::yFlip()
 	return std::make_shared<Profile>(this, filtered);
 }
 
-std::shared_ptr<Profile> Profile::timeCut(double t)
+std::shared_ptr<Profile> Profile::timeCut(float t)
 {
 	if(t < 0)
 		return std::shared_ptr<Profile>{};
-	double sampTime = timeWindow/samples;
+	float sampTime = timeWindow/samples;
 
-	double *filtered;
+	float *filtered;
 	size_t newSamples;
 	if(t >= timeWindow)
 	{
 		newSamples = samples+static_cast<size_t>((t-timeWindow)/sampTime)+1;
-		filtered = fftw_alloc_real(newSamples*traces);
+		filtered = (float*) fftwf_malloc(sizeof(float)*newSamples*traces);
 		for(size_t i=0; i<traces; i++)
 			for(size_t j=0; j<newSamples; j++)
 				filtered[i*newSamples+j] = j < samples ? data[i*samples+j] : 0;
@@ -949,7 +949,7 @@ std::shared_ptr<Profile> Profile::timeCut(double t)
 	else
 	{
 		newSamples = static_cast<size_t>(t/sampTime)+1;
-		filtered = fftw_alloc_real(newSamples*traces);
+		filtered = (float*) fftwf_malloc(sizeof(float)*newSamples*traces);
 		for(size_t i=0; i<traces; i++)
 			for(size_t j=0; j<samples; j++)
 			{
@@ -966,19 +966,19 @@ std::shared_ptr<Profile> Profile::timeCut(double t)
 }
 
 
-std::shared_ptr<Profile> Profile::moveStartTime(double t)
+std::shared_ptr<Profile> Profile::moveStartTime(float t)
 {
 	if(t == 0)
 		return std::make_shared<Profile>(*this);
 	if(t > timeWindow)
 		return std::shared_ptr<Profile>{};
-	double sampTime = timeWindow/samples;
-	double *filtered;
+	float sampTime = timeWindow/samples;
+	float *filtered;
 	size_t newSamples;
 	if(t < 0)
 	{
 		newSamples = static_cast<size_t>(-1*t/sampTime)+1;
-		filtered = fftw_alloc_real((samples-newSamples)*traces);
+		filtered = (float*) fftwf_malloc(sizeof(float)*(samples-newSamples)*traces);
 		for(size_t i=0; i<traces; i++)
 			for(size_t j=newSamples; j<samples; j++)
 				filtered[i*(samples-newSamples)+j-newSamples] = data[i*samples+j];
@@ -987,7 +987,7 @@ std::shared_ptr<Profile> Profile::moveStartTime(double t)
 	else
 	{
 		newSamples = static_cast<size_t>(t/sampTime)+1;
-		filtered = fftw_alloc_real((newSamples+samples)*traces);
+		filtered = (float*) fftwf_malloc(sizeof(float)*(newSamples+samples)*traces);
 		for(size_t i=0; i<traces; i++)
 			for(size_t j=0; j<newSamples; j++)
 				filtered[i*(newSamples+samples)+j] = 0;
@@ -1006,9 +1006,9 @@ std::shared_ptr<Profile> Profile::moveStartTime(double t)
 
 size_t* Profile::naivePicking()
 {
-	const double threshold = 0.2;
-	const double threshold1 = 0.05;
-	double *maxs = maxSamplePerTrace();
+	const float threshold = 0.2;
+	const float threshold1 = 0.05;
+	float *maxs = maxSamplePerTrace();
 	size_t *picks = new size_t[traces]{};
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
