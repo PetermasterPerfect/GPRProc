@@ -1,5 +1,6 @@
 #include "profile.h"
 #include <cmath>
+#include <liquid.h>
 
 file_pair split_filename(std::string fname)
 {
@@ -40,6 +41,9 @@ Profile::Profile(std::string p): path(p)
 		std::cout << "Unsupport extension\n";
 	picks = naivePicking();
 std::cout << "Samples: " << samples << " , traces: " << traces << ", timewindow: " << timeWindow << ", sample time: " << timeWindow/samples << "\n"; 
+	std::cout << "sampling freq: " << fs() << "\n";
+	for(size_t i=0; i<samples; i++)
+		std::cout << data[i] << " ";
 
 	for(size_t i=0; i<marks.size(); i++)
 		std::cout << marks[i] << " ";
@@ -159,9 +163,10 @@ std::pair<QVector<double>, QVector<double>> Profile::prepareWiggleData(size_t n,
 
 		p = fftwf_plan_dft_r2c_1d(samples, trace, fourier, FFTW_ESTIMATE);
 		fftwf_execute(p);
+
 		for (int i=0; i<samples/2; ++i)
 		{
-			x[i] = i;
+			x[i] = (double)i*fs()/samples;
 			if(type == 1)
 				y[i] = sqrt(pow(fourier[i][0], 2) + pow(fourier[i][1], 2));
 			else
@@ -344,7 +349,7 @@ void Profile::open_gssi(std::string name)
 	}
 	else
 	{	
-		size_t zero = hdr.rh_zero ? hdr.rh_zero : 0;
+		size_t zero = hdr.rh_zero ? hdr.rh_zero : 2;
 		if(zero >= samples)
 			zero = 0;
 		if(zero)
@@ -1002,6 +1007,33 @@ std::shared_ptr<Profile> Profile::moveStartTime(float t)
 		prof->marks = marks;
 	return prof;
 
+}
+
+
+std::shared_ptr<Profile> Profile::butterworthFilter(float lowCut, float highCut, float att, float ripple)
+{
+	if(lowCut >= highCut)
+		return std::shared_ptr<Profile>{};
+
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
+	float normLow = lowCut*1e+6/(fs());
+	float normHigh = highCut*1e+6/(fs());
+	float center = normLow+(normHigh-normLow)/2;
+
+    unsigned int N = 4;
+    float As = 60.0f;       // stopband attenuation [dB]
+    float Ap = 1.0f;        // passband ripple [dB]
+
+	for(size_t i=0; i<traces; i++)
+	{
+		iirfilt_rrrf filter = iirfilt_rrrf_create_prototype(LIQUID_IIRDES_BUTTER, LIQUID_IIRDES_BANDPASS, LIQUID_IIRDES_SOS,
+				4, normLow, center, ripple, att);
+		for(size_t j=0; j<samples; j++)
+			iirfilt_rrrf_execute(filter, data[i*samples+j], &filtered[i*samples+j]);
+		iirfilt_rrrf_destroy(filter);
+	}
+
+	return std::make_shared<Profile>(this, filtered);
 }
 
 size_t* Profile::naivePicking()

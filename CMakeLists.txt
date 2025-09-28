@@ -24,6 +24,8 @@ set_target_properties(GPRProc PROPERTIES
 )
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build the examples" FORCE)
 add_subdirectory(thirdparty/Qt-Advanced-Docking-System)
+add_subdirectory(thirdparty/liquid-dsp)
+include_directories(thirdparty/liquid-dsp/include/)
 
 target_link_libraries(GPRProc PRIVATE
     Qt6::Core
@@ -32,6 +34,7 @@ target_link_libraries(GPRProc PRIVATE
 	Qt6::PrintSupport
 	qtadvanceddocking-qt6
 	fftw3f
+	liquid
 )
 
 

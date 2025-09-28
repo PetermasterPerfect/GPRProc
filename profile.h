@@ -27,6 +27,13 @@ struct Profile
 	float *timeDomain = nullptr;
 	size_t *picks = nullptr;
 	std::vector<size_t> marks;
+	bool marksOn = false;
+
+	const inline double fs()
+	{
+		double T = timeWindow*1e-9;
+		return samples/T;  
+	}
 
 	std::pair<QVector<double>, QVector<double>> prepareWiggleData(size_t, char);
 	QCustomPlot* createWiggle(size_t, char type=0);
@@ -39,6 +46,7 @@ struct Profile
 	std::shared_ptr<Profile> yFlip();
 	std::shared_ptr<Profile> timeCut(float);
 	std::shared_ptr<Profile> moveStartTime(float);
+	std::shared_ptr<Profile> butterworthFilter(float, float, float, float);
 
 	size_t* naivePicking();
 	float* maxSamplePerTrace();

@@ -57,7 +57,7 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks)
 			else
 				profile = anonymousProc.second;
 
-			if(marks != userMarks)
+			if(marks != profile->marksOn)
 			{
 				if(marks)
 					for(auto mark : profile->marks)
@@ -79,8 +79,8 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks)
 								break;
 							}
 				}
+				profile->marksOn = marks;
 
-				userMarks = marks;
 			}
 			if(sc != scale || traceNorm != traceNormalization)
 			{
@@ -120,6 +120,8 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks)
 
 	scale = sc;
 	traceNormalization = traceNorm;
+	if(marks != userMarks)
+		userMarks = marks;
 }
 
 void ProfileDocker::removeColorMap(QCustomPlot* radargram)

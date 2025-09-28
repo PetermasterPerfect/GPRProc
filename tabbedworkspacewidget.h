@@ -19,8 +19,6 @@ public:
 	ProfileDocker* addTab(std::shared_ptr<Profile>);
 	~TabbedWorkspaceWidget() override;
 
-	static TabbedWorkspaceWidget* getInstance(const QString& key);
-
 	QTabWidget* tabWidget;
 
 private slots:
@@ -31,9 +29,6 @@ private:
 	QMainWindow* mainWindow;
 
 	//virtual void closeEvent(QCloseEvent* event) override;
-
-protected:
-	static std::map<QString, TabbedWorkspaceWidget*> instances;
 
 signals:
   void created();

@@ -133,7 +133,17 @@ if __name__ == "__main__":
     move_start.inputs = [
             In('QDoubleSpinBox','Start time: ', value='0', rang3='-1*profile->timeWindow+profile->timeWindow/profile->samples, profile->timeWindow-profile->timeWindow/profile->samples', decimals='3', single_step='profile->timeWindow/profile->samples')]
 
-    temp = Template([dc, dewow, gain, ampl0, xflip, yflip, time_cut, move_start])
+
+    butterworth = Procedur("Butterworth filter", 'butterworthFilter', 'butterworthFilter')
+    butterworth.inputs = [
+            In('QDoubleSpinBox','Low cutoff (MHz): ', value='0', rang3='0, profile->fs()/2-1', decimals='3', single_step='1'),
+            In('QDoubleSpinBox','High cutoff (MHz): ', value='profile->fs()/1e+6/2-1', rang3='0, profile->fs()/2-1', decimals='3', single_step='1'),
+            In('QDoubleSpinBox', 'Stopband attenuation [dB]: ', value='1', single_step='0.1', rang3='1, 1000'),
+            In('QDoubleSpinBox', 'Passband ripple [dB]: ', value='1', single_step='0.1', rang3='1, 1000')]
+
+
+
+    temp = Template([dc, dewow, gain, ampl0, xflip, yflip, time_cut, move_start, butterworth])
     with open('proceduresdialog.h', 'w') as f:
         f.write(temp.gen_hdr())
     with open('proceduresdialog.cpp', 'w') as f:

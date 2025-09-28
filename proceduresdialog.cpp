@@ -74,6 +74,7 @@ void ProceduresDialog::setupStackedOptions()
 	auto yFlipPage = createYflip();
 	auto timeCutPage = createTimecut();
 	auto moveStartTimePage = createMovestarttime();
+	auto butterworthFilterPage = createButterworthfilter();
     stack = new QStackedWidget;
     stack->addWidget(dcShiftPage);
 	stack->addWidget(dewowPage);
@@ -83,6 +84,7 @@ void ProceduresDialog::setupStackedOptions()
 	stack->addWidget(yFlipPage);
 	stack->addWidget(timeCutPage);
 	stack->addWidget(moveStartTimePage);
+	stack->addWidget(butterworthFilterPage);
 }
 
 std::shared_ptr<Profile> ProceduresDialog::getCurrentProcessing()
@@ -270,6 +272,19 @@ void ProceduresDialog::onMovestarttime(bool checked)
 		if(!docker)
 			return;
 		procedur = &Profile::moveStartTime;
+	}
+}
+
+
+void ProceduresDialog::onButterworthfilter(bool checked) 
+{
+    if (checked)
+    {
+        stack->setCurrentIndex(8);
+		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+		if(!docker)
+			return;
+		procedur = &Profile::butterworthFilter;
 	}
 }
 
@@ -867,6 +882,106 @@ input10->setDecimals(3);
             auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input10->value());
+            if(!proccessedProf)
+                return;
+            applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(true);
+
+        });
+
+    connect(procButton, &QPushButton::clicked, this, [=]() {
+            addProcessing(docker, procButton);
+        });
+
+    return page;
+
+}
+
+
+QWidget* ProceduresDialog::createButterworthfilter()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	auto page = new QWidget;
+	auto layout = new QVBoxLayout;
+	auto profile = getCurrentProcessing();
+
+    layout->addWidget(new QLabel("Butterworth filter"));
+    page->setLayout(layout);
+    
+    auto input11 = new QDoubleSpinBox;
+input11->setRange(0, profile->fs()/2-1);
+input11->setValue(0);
+input11->setSingleStep(1);
+input11->setDecimals(3);
+	
+auto input12 = new QDoubleSpinBox;
+input12->setRange(0, profile->fs()/2-1);
+input12->setValue(profile->fs()/1e+6/2-1);
+input12->setSingleStep(1);
+input12->setDecimals(3);
+	
+auto input13 = new QDoubleSpinBox;
+input13->setRange(1, 1000);
+input13->setValue(1);
+input13->setSingleStep(0.1);
+	
+auto input14 = new QDoubleSpinBox;
+input14->setRange(1, 1000);
+input14->setValue(1);
+input14->setSingleStep(0.1);
+//inputs
+    auto hLayout1_0 = new QHBoxLayout;
+    hLayout1_0->addWidget(new QLabel("Low cutoff (MHz): "));
+    hLayout1_0->addWidget(input11);
+    layout->addLayout(hLayout1_0);
+auto hLayout1_1 = new QHBoxLayout;
+    hLayout1_1->addWidget(new QLabel("High cutoff (MHz): "));
+    hLayout1_1->addWidget(input12);
+    layout->addLayout(hLayout1_1);
+auto hLayout1_2 = new QHBoxLayout;
+    hLayout1_2->addWidget(new QLabel("Stopband attenuation [dB]: "));
+    hLayout1_2->addWidget(input13);
+    layout->addLayout(hLayout1_2);
+auto hLayout1_3 = new QHBoxLayout;
+    hLayout1_3->addWidget(new QLabel("Passband ripple [dB]: "));
+    hLayout1_3->addWidget(input14);
+    layout->addLayout(hLayout1_3);
+
+
+    auto hLayout2 = new QHBoxLayout;
+    auto procName = new QLineEdit;
+    procName->setPlaceholderText("Input processing name(blank for default)");
+
+    auto procButton = new QPushButton("Proc");
+    procButton->setStatusTip("Add processing step");
+    procButton->setFlat(true);
+    hLayout2->addWidget(procName);
+
+    QPushButton *applyButton = new QPushButton("Apply");
+    hLayout2->addWidget(applyButton);
+
+    QPushButton *applyProcButton = new QPushButton("Apply&Proc");
+    applyProcButton->setStatusTip("Apply and add to processing steps");
+    hLayout2->addWidget(applyProcButton);
+    hLayout2->addWidget(procButton);
+    layout->addLayout(hLayout2);
+
+    connect(applyButton, &QPushButton::clicked, this, [=](){
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float, float, float)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input11->value(), input12->value(), input13->value(), input14->value());
+            if(!proccessedProf)
+                return;
+            apply(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(false);
+            });
+
+    connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float, float, float)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input11->value(), input12->value(), input13->value(), input14->value());
             if(!proccessedProf)
                 return;
             applyProc(docker, proccessedProf, getProcessingName(docker, procName));
