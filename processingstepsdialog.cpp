@@ -87,8 +87,9 @@ void ProcessingStepsDialog::addShowDeleteButtons(std::pair<QString, std::shared_
 			deleteMutex.lock();
 			if(docker->processingSteps.size() == 1)
 				tabWidget->removeTab(tabWidget->currentIndex());
-			auto procName = table->item(row, 0)->text();
-			table->removeRow(row);
+			int r = stepIndex(procStep.second);
+			auto procName = table->item(r, 0)->text();
+			table->removeRow(r);
 			auto pos = std::find(steps.begin(), steps.end(), docker->processingSteps[procName]);
 			if (pos != steps.end())
 				steps.erase(pos);
