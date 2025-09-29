@@ -1,4 +1,3 @@
-
 INIT = """
 #include "proceduresdialog.h"
 #include <QVBoxLayout>

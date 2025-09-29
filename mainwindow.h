@@ -7,6 +7,7 @@
 #include "profile.h"
 #include "tabbedworkspacewidget.h"
 #include "proceduresdialog.h"
+#include "processingstepsdialog.h"
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -43,7 +44,8 @@ private:
 	void createToolbar();
 	void removeWiggle(ProfileDocker*);
 	void setUpWiggle(ProfileDocker*, size_t, int idx=0);
-	void showpProceduresDialog();
+	void showProceduresDialog();
+	void showProcStepsDialog();
 
 	TabbedWorkspaceWidget *mainTab;
     QMenu *fileMenu;
@@ -61,6 +63,7 @@ private:
 	QAction *colorScaleAct;
 	QAction *userMarksAct;
 	QAction *proceduresAct;
+	QAction *procStepsAct;
 	QComboBox *colormapCombo;
 	QDoubleSpinBox *scaleSpinBox;
 

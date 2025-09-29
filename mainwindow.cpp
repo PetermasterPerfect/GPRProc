@@ -132,9 +132,9 @@ void MainWindow::removeWiggle(ProfileDocker *docker)
 void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 {
 	// TODO: clean up this mess
-	auto container = new QWidget();
-	auto optionsContainer = new QWidget();
-	auto procStepsCombo = new MyQComboBox;
+	auto container = new QWidget(this);
+	auto optionsContainer = new QWidget(this);
+	auto procStepsCombo = new MyQComboBox(this);
 	int i=0;
 	for(auto &it : docker->processingSteps)
 		procStepsCombo->insertItem(i++, it.first);
@@ -142,10 +142,10 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 	
 	QHBoxLayout *layout = new QHBoxLayout(container);
 	QVBoxLayout *optionsLayout = new QVBoxLayout(optionsContainer);
-	QSpinBox *spinBox = new QSpinBox();
-	QRadioButton *currentButton = new QRadioButton("current");
-	QRadioButton *amplitudeButton = new QRadioButton("amplitude");
-	QRadioButton *phaseButton = new QRadioButton("phase");
+	QSpinBox *spinBox = new QSpinBox(this);
+	QRadioButton *currentButton = new QRadioButton("current", this);
+	QRadioButton *amplitudeButton = new QRadioButton("amplitude", this);
+	QRadioButton *phaseButton = new QRadioButton("phase", this);
 	ads::CDockWidget *widget;
 	if(docker->wiggle)
 	{
@@ -303,7 +303,10 @@ void MainWindow::createActions()
     connect(userMarksAct, &QAction::triggered, this, &MainWindow::userMarks);
 
     proceduresAct = new QAction(tr("&Procedures"), this);
-    connect(proceduresAct, &QAction::triggered, this, &MainWindow::showpProceduresDialog);
+    connect(proceduresAct, &QAction::triggered, this, &MainWindow::showProceduresDialog);
+
+    procStepsAct = new QAction(tr("&Processing steps"), this);
+    connect(procStepsAct, &QAction::triggered, this, &MainWindow::showProcStepsDialog);
 
 } 
 
@@ -328,6 +331,7 @@ void MainWindow::createMenus()
 
 	processingMenu = menuBar()->addMenu(tr("&Processing"));
 	processingMenu->addAction(proceduresAct);
+	processingMenu->addAction(procStepsAct);
 }
 
 
@@ -335,7 +339,7 @@ void MainWindow::createToolbar()
 {
 	toolBar = addToolBar("Toolbar");
 	toolBar->addAction(openAct);
-	colormapCombo = new QComboBox;
+	colormapCombo = new QComboBox(this);
 	for(auto &color : gradientMap)
 		colormapCombo->addItem(color.first);
 	toolBar->addWidget(colormapCombo);
@@ -346,7 +350,7 @@ void MainWindow::createToolbar()
 			docker->gradType = gradientMap[text];
 			docker->replot();
 			});
-	scaleSpinBox = new QDoubleSpinBox;
+	scaleSpinBox = new QDoubleSpinBox(this);
 	scaleSpinBox->setValue(1);
 	scaleSpinBox->setSingleStep(0.5);
 	scaleSpinBox->setDecimals(3);
@@ -361,11 +365,20 @@ void MainWindow::createToolbar()
 
 }
 
-void MainWindow::showpProceduresDialog()
+void MainWindow::showProceduresDialog()
 {
 	if(!mainTab->tabWidget->currentWidget())
 		return;
     ProceduresDialog *options = new ProceduresDialog(mainTab->tabWidget, this);
+    options->setAttribute(Qt::WA_DeleteOnClose);
+    options->show(); 
+}
+
+void MainWindow::showProcStepsDialog()
+{
+	if(!mainTab->tabWidget->currentWidget())
+		return;
+    ProcessingStepsDialog *options = new ProcessingStepsDialog(mainTab->tabWidget, this);
     options->setAttribute(Qt::WA_DeleteOnClose);
     options->show(); 
 }

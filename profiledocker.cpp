@@ -158,3 +158,31 @@ bool ProfileDocker::containsMarks()
 	auto prof = processingSteps.begin()->second;
 	return !prof->marks.empty();
 }
+
+
+bool ProfileDocker::isProfileVisible(std::shared_ptr<Profile> prof)
+{
+	for(auto widget : dockWidgets())
+	{
+		if(widget == wiggle)
+			continue;
+		if(processingSteps.find(widget->objectName())->second == prof)
+			return true;
+	}
+	return false;
+}
+
+void ProfileDocker::removeProcessingStep(QString procName)
+{
+	for(auto widget : dockWidgets())
+	{
+		if(procName == widget->objectName())
+		{
+			removeDockWidget(widget);
+			break;
+		}
+	}
+
+	processingSteps.erase(procName);
+}
+

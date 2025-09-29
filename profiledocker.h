@@ -47,6 +47,8 @@ public:
 	void replotMarks(bool);
 	void removeColorMap(QCustomPlot*);
 	bool containsMarks();
+	bool isProfileVisible(std::shared_ptr<Profile>);
+	void removeProcessingStep(QString);
 private:
 	QString name;
 	void replotColorScale(QCustomPlot*);

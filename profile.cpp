@@ -42,8 +42,6 @@ Profile::Profile(std::string p): path(p)
 	picks = naivePicking();
 std::cout << "Samples: " << samples << " , traces: " << traces << ", timewindow: " << timeWindow << ", sample time: " << timeWindow/samples << "\n"; 
 	std::cout << "sampling freq: " << fs() << "\n";
-	for(size_t i=0; i<samples; i++)
-		std::cout << data[i] << " ";
 
 	for(size_t i=0; i<marks.size(); i++)
 		std::cout << marks[i] << " ";
