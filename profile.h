@@ -12,10 +12,88 @@
 #include <utility>
 #include <map>
 #include <fftw3.h>
+#include <QWidget>
+#include <QMainWindow>
 
 using file_pair = std::pair<std::string, std::string>;// file_pair;
 std::ifstream open_both_cases(std::string name, std::string ext);
 file_pair split_filename(std::string fname);
+
+class MyQCustomPlot : public QCustomPlot 
+{
+    Q_OBJECT
+public:
+	MyQCustomPlot(QWidget *parent=nullptr) : QCustomPlot(parent)
+	{
+		setContextMenuPolicy(Qt::CustomContextMenu);
+		connect(this, &QCustomPlot::customContextMenuRequested,
+			this, &MyQCustomPlot::showContextMenu);
+	}
+	
+	void showContextMenu(const QPoint &pos)
+	{
+		QMenu contextMenu(this);
+
+		QAction xTitleAct("Add x axis title", this);
+		QAction yTitleAct("Add y axis title", this);
+		connect(&xTitleAct, &QAction::triggered, this, &MyQCustomPlot::addXTitleAction);
+		connect(&yTitleAct, &QAction::triggered, this, &MyQCustomPlot::addYTitleAction);
+		contextMenu.addAction(&xTitleAct);
+		contextMenu.addAction(&yTitleAct);
+		contextMenu.exec(mapToGlobal(pos));
+	}
+
+	void addXTitleAction()
+	{
+		QDialog dialog;
+		dialog.setWindowTitle("X axis title");
+
+		QHBoxLayout *layout = new QHBoxLayout(&dialog);
+
+		QLineEdit *lineEdit = new QLineEdit(&dialog);
+		QSpinBox *fontSizeSpin = new QSpinBox(this);
+		QPushButton *okButton = new QPushButton("Ok", this);
+		fontSizeSpin->setRange(2, 72);
+		fontSizeSpin->setValue(10);
+		layout->addWidget(lineEdit);
+		layout->addWidget(fontSizeSpin);
+		layout->addWidget(okButton);
+		QObject::connect(lineEdit, &QLineEdit::returnPressed, &dialog, &QDialog::accept);
+		QObject::connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+		if (dialog.exec() == QDialog::Accepted)
+		{
+			auto font = QFont("Arial", fontSizeSpin->value());
+			this->xAxis2->setLabel(lineEdit->text());
+			this->xAxis2->setLabelFont(font);
+		}
+	}
+
+	void addYTitleAction()
+	{
+		QDialog dialog;
+		dialog.setWindowTitle("Y axis title");
+
+		QHBoxLayout *layout = new QHBoxLayout(&dialog);
+
+		QLineEdit *lineEdit = new QLineEdit(&dialog);
+		QSpinBox *fontSizeSpin = new QSpinBox(this);
+		QPushButton *okButton = new QPushButton("Ok", this);
+		fontSizeSpin->setRange(2, 72);
+		fontSizeSpin->setValue(10);
+		layout->addWidget(lineEdit);
+		layout->addWidget(fontSizeSpin);
+		layout->addWidget(okButton);
+		QObject::connect(lineEdit, &QLineEdit::returnPressed, &dialog, &QDialog::accept);
+		QObject::connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+		if (dialog.exec() == QDialog::Accepted)
+		{
+			auto font = QFont("Arial", fontSizeSpin->value());
+			this->yAxis->setLabel(lineEdit->text());
+			this->yAxis->setLabelFont(font);
+		}
+	}
+
+};
 
 struct Profile
 {

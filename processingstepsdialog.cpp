@@ -67,18 +67,12 @@ void ProcessingStepsDialog::addShowDeleteButtons(std::pair<QString, std::shared_
 	connect(showButton, &QPushButton::clicked, this, [=](){
 		if(showButton->isFlat())
 			return;
-		auto widget = docker->createDockWidget(procStep.first);
-		auto plotPair = procStep.second->createRadargram(docker->gradType, docker->scale);
-		if(!plotPair.value().first)
-			return;
 
-		connect(widget, &ads::CDockWidget::closed, docker, [=]() {
-				docker->removeDockWidget(widget);
-				docker->removeColorMap(plotPair.value().first);
-			});
-		widget->setWidget(plotPair.value().first);
-		docker->radargram2ColorMap.insert(plotPair.value());
+		auto widget = docker->addRadargramView(procStep.second, procStep.first);
+		if(!widget)
+			return;
 		docker->addDockWidget(ads::BottomDockWidgetArea, widget);
+
 		showButton->setFlat(false);
 			});
 

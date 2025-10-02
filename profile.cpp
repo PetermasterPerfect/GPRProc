@@ -218,22 +218,30 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QC
 	if(!init)
 		return std::nullopt;
 
-	QCustomPlot *imagePlot = new QCustomPlot();
+	MyQCustomPlot *imagePlot = new MyQCustomPlot(); // TODO: add parent
 
 	imagePlot->addGraph();
-	imagePlot->xAxis->setLabel("x");
+	imagePlot->xAxis2->setVisible(true);
+	imagePlot->xAxis->setVisible(false);
+	imagePlot->setInteraction(QCP::Interaction::iRangeZoom);
+	imagePlot->setInteraction(QCP::Interaction::iRangeDrag);
+	imagePlot->axisRect()->setRangeDragAxes(imagePlot->xAxis2, imagePlot->yAxis);
+	imagePlot->axisRect()->setRangeZoomAxes(imagePlot->xAxis2, imagePlot->yAxis);
+
+	imagePlot->xAxis2->setLabel("x");
 	imagePlot->yAxis->setLabel("y");
 	imagePlot->yAxis->setRangeReversed(true);
-	QCPRange *samplesRange = new QCPRange(0, samples-1 ? samples-1 : 1);
+	float sampTime = timeWindow/samples;
+	QCPRange *samplesRange = new QCPRange(0, timeWindow-sampTime ? timeWindow-sampTime : 1);
 	QCPRange *tracesRange = new QCPRange(0,  traces-1 ? traces-1 : 1);
 	QCPColorGradient gradient;
 	gradient.loadPreset(gradType);
 	QCPColorMapData *mapData = new QCPColorMapData(traces, samples, *tracesRange, *samplesRange);
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
-			mapData->setData(i, j, data[i*samples+j]*scale);
+			mapData->setData(i, j*sampTime, data[i*samples+j]*scale);
 
-	QCPColorMap *map = new QCPColorMap(imagePlot->xAxis, imagePlot->yAxis);
+	QCPColorMap *map = new QCPColorMap(imagePlot->xAxis2, imagePlot->yAxis);
 	map->setData(mapData);
 	map->setGradient(gradient);
 	map->rescaleDataRange();
@@ -256,13 +264,13 @@ int Profile::askForChannelDialog(tagRFHeader *hdr)
 	std::vector<QRadioButton*> options;
 	for(int i=0; i<hdr->rh_nchan; i++)
 	{
-		auto buf = new QRadioButton("Channel "+ QString::number(i+1));
+		auto buf = new QRadioButton("Channel "+ QString::number(i+1), &dialog);
 		options.push_back(buf);
 		layout->addWidget(buf);
 	}
 	options[0]->setChecked(true);
 
-    QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok);
+    QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok, &dialog);
     layout->addWidget(buttons);
 
     QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);

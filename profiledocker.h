@@ -49,6 +49,7 @@ public:
 	bool containsMarks();
 	bool isProfileVisible(std::shared_ptr<Profile>);
 	void removeProcessingStep(QString);
+	ads::CDockWidget* addRadargramView(std::shared_ptr<Profile>, QString);
 private:
 	QString name;
 	void replotColorScale(QCustomPlot*);

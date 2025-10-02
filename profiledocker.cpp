@@ -186,3 +186,23 @@ void ProfileDocker::removeProcessingStep(QString procName)
 	processingSteps.erase(procName);
 }
 
+
+ads::CDockWidget* ProfileDocker::addRadargramView(std::shared_ptr<Profile> profile, QString name)
+{
+	auto widget = createDockWidget(name);
+	auto plotPair = profile->createRadargram();
+	if(!plotPair)
+		return nullptr;
+
+	widget->setWidget(plotPair.value().first);
+	radargram2ColorMap.insert(plotPair.value());
+	addDockWidget(ads::TopDockWidgetArea, widget);
+
+	connect(widget, &ads::CDockWidget::closed, this, [=]() {
+				removeDockWidget(widget);
+				removeColorMap(plotPair.value().first);
+			});
+
+
+	return widget;
+}

@@ -29,22 +29,12 @@ ProfileDocker* TabbedWorkspaceWidget::addTab(std::shared_ptr<Profile> profile)
 {
 	auto path = tr(profile->path.c_str());
 	auto docker = new ProfileDocker(path, tabWidget);
-	auto widget = docker->createDockWidget(path);
-	widget->setFeatures(widget->features() & 
-			~ads::CDockWidget::DockWidgetClosable & ~ads::CDockWidget::DockWidgetFloatable);
-	auto plotPair = profile->createRadargram();
-	if(!plotPair)
+	auto widget = docker->addRadargramView(profile, path);
+	if(!widget)
 		return nullptr;
-	widget->setWidget(plotPair.value().first);
-	docker->radargram2ColorMap.insert(plotPair.value());
-	docker->addDockWidget(ads::TopDockWidgetArea, widget);
+
 	docker->processingSteps[path] = std::move(profile);
 	tabWidget->addTab(docker, path);
 	tabWidget->setCurrentWidget(docker);
-
-	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
-				docker->removeDockWidget(widget);
-				docker->removeColorMap(plotPair.value().first);
-			});
 	return docker;
 }

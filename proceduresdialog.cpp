@@ -3,6 +3,7 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QPushButton>
+#include "DockManager.h"
 
 ProceduresDialog::ProceduresDialog(QTabWidget *tab, QWidget *parent)
     : tabWidget(tab), QDialog(parent)
@@ -133,17 +134,9 @@ void ProceduresDialog::applyProc(ProfileDocker *docker, std::shared_ptr<Profile>
 
 void ProceduresDialog::applyBase(ProfileDocker *docker, std::shared_ptr<Profile> profile, QString name)
 {
-	auto widget = docker->createDockWidget(name);
-	auto plotPair = profile->createRadargram(docker->gradType, docker->scale);
-	if(!plotPair.value().first)
-		return;
-
-	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
-			docker->removeDockWidget(widget);
-			docker->removeColorMap(plotPair.value().first);
-		});
-	widget->setWidget(plotPair.value().first);
-	docker->radargram2ColorMap.insert(plotPair.value());
+	auto widget = docker->addRadargramView(profile, name);
+    if(!widget)
+        return;
 	docker->addDockWidget(ads::BottomDockWidgetArea, widget);
 }
 
