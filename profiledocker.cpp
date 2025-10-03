@@ -59,6 +59,7 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks)
 
 			if(marks != profile->marksOn)
 			{
+				std::cout << "count: " << plot->axisRectCount() << "\n";
 				if(marks)
 					for(auto mark : profile->marks)
 					{
@@ -187,9 +188,9 @@ void ProfileDocker::removeProcessingStep(QString procName)
 }
 
 
-ads::CDockWidget* ProfileDocker::addRadargramView(std::shared_ptr<Profile> profile, QString name)
+ads::CDockWidget* ProfileDocker::addRadargramView(std::shared_ptr<Profile> profile, QString name, QWidget* parent)
 {
-	auto widget = createDockWidget(name);
+	auto widget = createDockWidget(name, parent);
 	auto plotPair = profile->createRadargram();
 	if(!plotPair)
 		return nullptr;

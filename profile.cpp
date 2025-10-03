@@ -220,6 +220,7 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QC
 
 	MyQCustomPlot *imagePlot = new MyQCustomPlot(); // TODO: add parent
 
+	imagePlot->xAxis = imagePlot->xAxis2;
 	imagePlot->addGraph();
 	imagePlot->xAxis2->setVisible(true);
 	imagePlot->xAxis->setVisible(false);
@@ -353,23 +354,25 @@ void Profile::open_gssi(std::string name)
 			}
 		}
 	}
+	size_t zero;
+	if(channel == 1)
+		zero = hdr.rh_zero ? hdr.rh_zero : 2;
 	else
-	{	
-		size_t zero = hdr.rh_zero ? hdr.rh_zero : 2;
-		if(zero >= samples)
-			zero = 0;
-		if(zero)
-		{
-			float *buf = (float*) fftwf_malloc(sizeof(float)*traces*(samples-zero));
-			for(size_t i=0; i<traces; i++)
-				for(size_t j=0; j<samples; j++)
-					if(j>=zero)
-						buf[i*(samples-zero)+(j-zero)] = data[i*samples+j];
-			samples-=zero;
+		zero = hdr.rh_zero ? hdr.rh_zero : 0;
 
-			fftwf_free(data);
-			data = buf;
-		}
+	if(zero >= samples)
+		zero = 0;
+	if(zero)
+	{
+		float *buf = (float*) fftwf_malloc(sizeof(float)*traces*(samples-zero));
+		for(size_t i=0; i<traces; i++)
+			for(size_t j=0; j<samples; j++)
+				if(j>=zero)
+					buf[i*(samples-zero)+(j-zero)] = data[i*samples+j];
+		samples-=zero;
+
+		fftwf_free(data);
+		data = buf;
 	}
 	readTimeDomain();
 }
@@ -499,13 +502,21 @@ struct __attribute__((packed)) TraceValues {
 void Profile::detectMarks(float *dt)
 {
 	std::pair<float, size_t> ty1, ty2;
+	if(traces < 2)
+		return;
 	ty1.first = dt[1];
-	ty1.second = 1;
 	ty2.first = dt[samples+1];
-	ty2.second = 1;
+	size_t i = 2;
+	while(ty1.first == ty2.first && i<traces)
+	{
+		ty2.first = dt[i*samples+1];
+		i++;
+	}
+
 	if(ty1.first == ty2.first)
 		return;
-	for(size_t i=2; i<traces; i++)
+
+	for(size_t i=0; i<traces; i++)
 		if(dt[i*samples+1] == ty1.first)
 			ty1.second++;
 		else if(dt[i*samples+1] == ty2.first)

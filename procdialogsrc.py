@@ -118,7 +118,7 @@ void ProceduresDialog::applyProc(ProfileDocker *docker, std::shared_ptr<Profile>
 
 void ProceduresDialog::applyBase(ProfileDocker *docker, std::shared_ptr<Profile> profile, QString name)
 {{
-	auto widget = docker->addRadargramView(profile, name);
+	auto widget = docker->addRadargramView(profile, name, tabWidget);
     if(!widget)
         return;
 	docker->addDockWidget(ads::BottomDockWidgetArea, widget);
