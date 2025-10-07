@@ -8,6 +8,7 @@ ProfileDocker::ProfileDocker(QString name, QWidget* parent) :
 
 ProfileDocker::~ProfileDocker()
 {
+	std::cout << "~~DEST ProfileDocker~~\n";
 	if(anonymousProc.second)
 	{
 		if(anonymousProc.second->data)
@@ -187,19 +188,31 @@ void ProfileDocker::removeProcessingStep(QString procName)
 	processingSteps.erase(procName);
 }
 
+void ProfileDocker::removeProcessingSteps()
+{
+	for(auto widget : dockWidgets())
+		removeDockWidget(widget);
+
+
+	processingSteps.clear();
+	anonymousProc = std::make_pair("", nullptr);
+}
+
 
 ads::CDockWidget* ProfileDocker::addRadargramView(std::shared_ptr<Profile> profile, QString name, QWidget* parent)
 {
-	auto widget = createDockWidget(name, parent);
-	auto plotPair = profile->createRadargram();
+	auto widget = new ads::CDockWidget(name, this);
+	auto plotPair = profile->createRadargram(this);
 	if(!plotPair)
 		return nullptr;
 
 	widget->setWidget(plotPair.value().first);
+	widget->setFeature(ads::CDockWidget::DockWidgetDeleteOnClose, 1);
 	radargram2ColorMap.insert(plotPair.value());
 	addDockWidget(ads::TopDockWidgetArea, widget);
 
 	connect(widget, &ads::CDockWidget::closed, this, [=]() {
+				std::cout << "dock widget closing\n";
 				removeDockWidget(widget);
 				removeColorMap(plotPair.value().first);
 			});

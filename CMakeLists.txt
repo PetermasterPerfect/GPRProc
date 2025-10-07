@@ -27,13 +27,14 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "Build the examples" FORCE)
 add_subdirectory(thirdparty/Qt-Advanced-Docking-System)
 add_subdirectory(thirdparty/liquid-dsp)
 include_directories(thirdparty/liquid-dsp/include/)
+include_directories(thirdparty/Qt-Advanced-Docking-System/src)
 
 target_link_libraries(GPRProc PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
 	Qt6::PrintSupport
-	qtadvanceddocking-qt6
+	qtadvanceddocking
 	fftw3f
 	liquid
 )

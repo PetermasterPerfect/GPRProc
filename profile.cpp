@@ -126,6 +126,7 @@ Profile::Profile(Profile *prof, float *buf)
 
 Profile::~Profile()
 {
+	std::cout << "~~DEST~~\n";
 	if(data)
 		fftwf_free(data);
 	data = nullptr;
@@ -213,17 +214,17 @@ QCustomPlot* Profile::createWiggle(size_t n, char type)
 	return wigglePlot;
 }
 
-std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QCPColorGradient::GradientPreset gradType, float scale)
+std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QWidget *parent, QCPColorGradient::GradientPreset gradType, float scale)
 {
 	if(!init)
 		return std::nullopt;
 
-	MyQCustomPlot *imagePlot = new MyQCustomPlot(); // TODO: add parent
+	MyQCustomPlot *imagePlot = new MyQCustomPlot(parent); // TODO: add parent
 
+	imagePlot->xAxis->setVisible(false);
 	imagePlot->xAxis = imagePlot->xAxis2;
 	imagePlot->addGraph();
-	imagePlot->xAxis2->setVisible(true);
-	imagePlot->xAxis->setVisible(false);
+	imagePlot->xAxis->setVisible(true);
 	imagePlot->setInteraction(QCP::Interaction::iRangeZoom);
 	imagePlot->setInteraction(QCP::Interaction::iRangeDrag);
 	imagePlot->axisRect()->setRangeDragAxes(imagePlot->xAxis2, imagePlot->yAxis);
@@ -282,8 +283,7 @@ int Profile::askForChannelDialog(tagRFHeader *hdr)
 			if(options[i]->isChecked())
 				return i+1;
     } 
-	else
-		return -1;
+	return -1;
 }
 
 
@@ -1048,6 +1048,31 @@ std::shared_ptr<Profile> Profile::butterworthFilter(float lowCut, float highCut,
 		for(size_t j=0; j<samples; j++)
 			iirfilt_rrrf_execute(filter, data[i*samples+j], &filtered[i*samples+j]);
 		iirfilt_rrrf_destroy(filter);
+	}
+
+	return std::make_shared<Profile>(this, filtered);
+}
+
+std::shared_ptr<Profile> Profile::agc(float bt, float sc)
+{
+	if(bt < 0)
+		return std::shared_ptr<Profile>{};
+
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
+
+    unsigned int N = 4;
+    float As = 60.0f;       // stopband attenuation [dB]
+    float Ap = 1.0f;        // passband ripple [dB]
+
+	for(size_t i=0; i<traces; i++)
+	{
+		agc_rrrf q = agc_rrrf_create();
+		agc_rrrf_init(q, &data[i*samples], samples);
+		agc_rrrf_set_bandwidth(q, bt);
+		agc_rrrf_set_scale(q, sc);
+		for(size_t j=0; j<samples; j++)
+			agc_rrrf_execute(q, data[i*samples+j], &filtered[i*samples+j]);
+		agc_rrrf_destroy(q);
 	}
 
 	return std::make_shared<Profile>(this, filtered);

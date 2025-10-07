@@ -39,7 +39,7 @@ struct Profile
 
 	std::pair<QVector<double>, QVector<double>> prepareWiggleData(size_t, char);
 	QCustomPlot* createWiggle(size_t, char type=0);
-	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale, float scale=1);
+	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> createRadargram(QWidget *parent=nullptr, QCPColorGradient::GradientPreset gradType=QCPColorGradient::gpGrayscale, float scale=1);
 	std::shared_ptr<Profile> subtractDcShift(float, float);
 	std::shared_ptr<Profile> subtractDewow(float);
 	std::shared_ptr<Profile> gainFunction(float, float, float, float);
@@ -49,6 +49,7 @@ struct Profile
 	std::shared_ptr<Profile> timeCut(float);
 	std::shared_ptr<Profile> moveStartTime(float);
 	std::shared_ptr<Profile> butterworthFilter(float, float, float, float);
+	std::shared_ptr<Profile> agc(float, float);
 
 	size_t* naivePicking();
 	float* maxSamplePerTrace();

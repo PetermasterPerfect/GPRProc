@@ -142,8 +142,13 @@ if __name__ == "__main__":
             In('QDoubleSpinBox', 'Passband ripple [dB]: ', value='1', single_step='0.1', rang3='1, 1000')]
 
 
+    agc = Procedur("Automatic gain control (AGC)", 'agc', 'agc')
+    agc.inputs = [
+            In('QDoubleSpinBox','Bandwidth: ', value='1', rang3='0, 100000', decimals='3', single_step='0.1'),
+            In('QDoubleSpinBox','Scale: ', value='1', rang3='0, 100000', decimals='3', single_step='0.1')]
 
-    temp = Template([dc, dewow, gain, ampl0, xflip, yflip, time_cut, move_start, butterworth])
+    temp = Template([dc, dewow, gain, ampl0, xflip, yflip, 
+                     time_cut, move_start, butterworth, agc])
     with open('proceduresdialog.h', 'w') as f:
         f.write(temp.gen_hdr())
     with open('proceduresdialog.cpp', 'w') as f:

@@ -27,7 +27,7 @@ class ProfileDocker : public ads::CDockManager
 	friend class ProceduresDialog;
 public:
 	ProfileDocker(QString name, QWidget* parent = nullptr);
-	~ProfileDocker();
+	~ProfileDocker() override;
 
 	ads::CDockWidget* wiggle = nullptr;
 	char wiggleType = 0;
@@ -49,7 +49,8 @@ public:
 	bool containsMarks();
 	bool isProfileVisible(std::shared_ptr<Profile>);
 	void removeProcessingStep(QString);
-	ads::CDockWidget* addRadargramView(std::shared_ptr<Profile>, QString, QWidget*);
+	void removeProcessingSteps();
+	ads::CDockWidget* addRadargramView(std::shared_ptr<Profile>, QString, QWidget* parent=nullptr);
 private:
 	QString name;
 	void replotColorScale(QCustomPlot*);

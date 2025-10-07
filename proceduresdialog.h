@@ -9,7 +9,7 @@
 #include <any>
 
 
-static const char *gProceduresNames[] = {"Subtract DC-shift", "Subtract mean (dewow)", "Exponent gain", "Amplitudes to 0", "X(traces) flip", "Y(samples) flip", "Time cut", "Move start time", "Butterworth filter"}; //proc names
+static const char *gProceduresNames[] = {"Subtract DC-shift", "Subtract mean (dewow)", "Exponent gain", "Amplitudes to 0", "X(traces) flip", "Y(samples) flip", "Time cut", "Move start time", "Butterworth filter", "Automatic gain control (AGC)"}; //proc names
 
 class ProceduresDialog : public QDialog {
     Q_OBJECT
@@ -25,12 +25,13 @@ private slots:
 	void onYflip(bool checked);
 	void onTimecut(bool checked);
 	void onMovestarttime(bool checked);
-	void onButterworthfilter(bool checked); // slots 
+	void onButterworthfilter(bool checked);
+	void onAgc(bool checked); // slots 
 	void onPopupUpdate();
 
 private:
 	using SlotType = void (ProceduresDialog::*)(bool);
-	std::array<SlotType, 9> onProcSlots = {
+	std::array<SlotType, 10> onProcSlots = {
 	    	&ProceduresDialog::onDcshift,
 		&ProceduresDialog::onDewow,
 		&ProceduresDialog::onGain,
@@ -39,7 +40,8 @@ private:
 		&ProceduresDialog::onYflip,
 		&ProceduresDialog::onTimecut,
 		&ProceduresDialog::onMovestarttime,
-		&ProceduresDialog::onButterworthfilter // slots functions	
+		&ProceduresDialog::onButterworthfilter,
+		&ProceduresDialog::onAgc // slots functions	
 	};
 	QTabWidget *tabWidget;
 
@@ -61,7 +63,8 @@ private:
 	QWidget* createYflip();
 	QWidget* createTimecut();
 	QWidget* createMovestarttime();
-	QWidget* createButterworthfilter(); // create pages	
+	QWidget* createButterworthfilter();
+	QWidget* createAgc(); // create pages	
 	void setupStackedOptions();
 	QString getProcessingName(ProfileDocker*, QLineEdit*);
 	std::shared_ptr<Profile> getCurrentProcessing();

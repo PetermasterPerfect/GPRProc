@@ -76,6 +76,7 @@ void ProceduresDialog::setupStackedOptions()
 	auto timeCutPage = createTimecut();
 	auto moveStartTimePage = createMovestarttime();
 	auto butterworthFilterPage = createButterworthfilter();
+	auto agcPage = createAgc();
     stack = new QStackedWidget;
     stack->addWidget(dcShiftPage);
 	stack->addWidget(dewowPage);
@@ -86,6 +87,7 @@ void ProceduresDialog::setupStackedOptions()
 	stack->addWidget(timeCutPage);
 	stack->addWidget(moveStartTimePage);
 	stack->addWidget(butterworthFilterPage);
+	stack->addWidget(agcPage);
 }
 
 std::shared_ptr<Profile> ProceduresDialog::getCurrentProcessing()
@@ -278,6 +280,19 @@ void ProceduresDialog::onButterworthfilter(bool checked)
 		if(!docker)
 			return;
 		procedur = &Profile::butterworthFilter;
+	}
+}
+
+
+void ProceduresDialog::onAgc(bool checked) 
+{
+    if (checked)
+    {
+        stack->setCurrentIndex(9);
+		auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+		if(!docker)
+			return;
+		procedur = &Profile::agc;
 	}
 }
 
@@ -975,6 +990,88 @@ auto hLayout1_3 = new QHBoxLayout;
             auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float, float, float)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input11->value(), input12->value(), input13->value(), input14->value());
+            if(!proccessedProf)
+                return;
+            applyProc(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(true);
+
+        });
+
+    connect(procButton, &QPushButton::clicked, this, [=]() {
+            addProcessing(docker, procButton);
+        });
+
+    return page;
+
+}
+
+
+QWidget* ProceduresDialog::createAgc()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(tabWidget->currentWidget());
+	if(!docker)
+		return nullptr;
+	auto page = new QWidget;
+	auto layout = new QVBoxLayout;
+	auto profile = getCurrentProcessing();
+
+    layout->addWidget(new QLabel("Automatic gain control (AGC)"));
+    page->setLayout(layout);
+    
+    auto input15 = new QDoubleSpinBox;
+input15->setRange(0, 100000);
+input15->setValue(1);
+input15->setSingleStep(0.1);
+input15->setDecimals(3);
+	
+auto input16 = new QDoubleSpinBox;
+input16->setRange(0, 100000);
+input16->setValue(1);
+input16->setSingleStep(0.1);
+input16->setDecimals(3);
+//inputs
+    auto hLayout1_0 = new QHBoxLayout;
+    hLayout1_0->addWidget(new QLabel("Bandwidth: "));
+    hLayout1_0->addWidget(input15);
+    layout->addLayout(hLayout1_0);
+auto hLayout1_1 = new QHBoxLayout;
+    hLayout1_1->addWidget(new QLabel("Scale: "));
+    hLayout1_1->addWidget(input16);
+    layout->addLayout(hLayout1_1);
+
+
+    auto hLayout2 = new QHBoxLayout;
+    auto procName = new QLineEdit;
+    procName->setPlaceholderText("Input processing name(blank for default)");
+
+    auto procButton = new QPushButton("Proc");
+    procButton->setStatusTip("Add processing step");
+    procButton->setFlat(true);
+    hLayout2->addWidget(procName);
+
+    QPushButton *applyButton = new QPushButton("Apply");
+    hLayout2->addWidget(applyButton);
+
+    QPushButton *applyProcButton = new QPushButton("Apply&Proc");
+    applyProcButton->setStatusTip("Apply and add to processing steps");
+    hLayout2->addWidget(applyProcButton);
+    hLayout2->addWidget(procButton);
+    layout->addLayout(hLayout2);
+
+    connect(applyButton, &QPushButton::clicked, this, [=](){
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input15->value(), input16->value());
+            if(!proccessedProf)
+                return;
+            apply(docker, proccessedProf, getProcessingName(docker, procName));
+            procButton->setFlat(false);
+            });
+
+    connect(applyProcButton, &QPushButton::clicked, this, [=]() {
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float)>(procedur);
+            auto profile = getCurrentProcessing();
+            auto proccessedProf = (profile.get()->*procFunc)(input15->value(), input16->value());
             if(!proccessedProf)
                 return;
             applyProc(docker, proccessedProf, getProcessingName(docker, procName));

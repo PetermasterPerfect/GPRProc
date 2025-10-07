@@ -4,7 +4,7 @@
 
 MainWindow::MainWindow(char *fname)
 {
-	mainTab = new TabbedWorkspaceWidget("main", this, this);
+	mainTab = new TabbedWorkspaceWidget("main", this, nullptr);
 
 	//connect(tabWidget, &QTabWidget::tabCloseRequested,
     //    this, &MainWindow::closeTab);
@@ -172,7 +172,7 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 	}
 	else
 	{
-		widget = docker->createDockWidget("Wiggle view");
+		widget = new ads::CDockWidget("Wiggle view", docker);//docker->createDockWidget("Wiggle view");
 		docker->wiggle = widget;
 	}
 	auto profile = docker->processingSteps[procStepsCombo->currentText()];
@@ -380,7 +380,7 @@ void MainWindow::showProcStepsDialog()
 		return;
     ProcessingStepsDialog *options = new ProcessingStepsDialog(mainTab->tabWidget, this);
     options->setAttribute(Qt::WA_DeleteOnClose);
-    options->show(); 
+    options->exec(); 
 }
 
 void MainWindow::onOpenFile()
@@ -393,4 +393,5 @@ void MainWindow::onOpenFile()
 
 	std::shared_ptr<Profile> prof = std::make_shared<Profile>(filename.toStdString());
 	mainTab->addTab(prof);
+	std::cout << "OPENED\n";
 }
