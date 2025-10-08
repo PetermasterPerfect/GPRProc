@@ -27,7 +27,7 @@ void TabbedWorkspaceWidget::addTab(std::shared_ptr<Profile> profile)
 {
 	auto path = tr(profile->path.c_str());
 	auto docker = new ProfileDocker(path);
-	auto widget = docker->addRadargramView(profile, path, tabWidget);
+	auto widget = docker->addRadargramView(profile, path);
 	if(!widget)
 		return;
 

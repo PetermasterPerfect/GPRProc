@@ -49,7 +49,7 @@ struct Profile
 	std::shared_ptr<Profile> timeCut(float);
 	std::shared_ptr<Profile> moveStartTime(float);
 	std::shared_ptr<Profile> butterworthFilter(float, float, float, float);
-	std::shared_ptr<Profile> agc(float, float);
+	std::shared_ptr<Profile> agc(size_t);
 
 	size_t* naivePicking();
 	float* maxSamplePerTrace();

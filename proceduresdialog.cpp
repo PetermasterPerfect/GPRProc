@@ -136,7 +136,7 @@ void ProceduresDialog::applyProc(ProfileDocker *docker, std::shared_ptr<Profile>
 
 void ProceduresDialog::applyBase(ProfileDocker *docker, std::shared_ptr<Profile> profile, QString name)
 {
-	auto widget = docker->addRadargramView(profile, name, tabWidget);
+	auto widget = docker->addRadargramView(profile, name);
     if(!widget)
         return;
 	docker->addDockWidget(ads::BottomDockWidgetArea, widget);
@@ -1018,26 +1018,15 @@ QWidget* ProceduresDialog::createAgc()
     layout->addWidget(new QLabel("Automatic gain control (AGC)"));
     page->setLayout(layout);
     
-    auto input15 = new QDoubleSpinBox;
-input15->setRange(0, 100000);
+    auto input15 = new QSpinBox;
+input15->setRange(1, profile->samples);
 input15->setValue(1);
-input15->setSingleStep(0.1);
-input15->setDecimals(3);
-	
-auto input16 = new QDoubleSpinBox;
-input16->setRange(0, 100000);
-input16->setValue(1);
-input16->setSingleStep(0.1);
-input16->setDecimals(3);
+input15->setSingleStep(1);
 //inputs
     auto hLayout1_0 = new QHBoxLayout;
-    hLayout1_0->addWidget(new QLabel("Bandwidth: "));
+    hLayout1_0->addWidget(new QLabel("Window: "));
     hLayout1_0->addWidget(input15);
     layout->addLayout(hLayout1_0);
-auto hLayout1_1 = new QHBoxLayout;
-    hLayout1_1->addWidget(new QLabel("Scale: "));
-    hLayout1_1->addWidget(input16);
-    layout->addLayout(hLayout1_1);
 
 
     auto hLayout2 = new QHBoxLayout;
@@ -1059,9 +1048,9 @@ auto hLayout1_1 = new QHBoxLayout;
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(size_t)>(procedur);
             auto profile = getCurrentProcessing();
-            auto proccessedProf = (profile.get()->*procFunc)(input15->value(), input16->value());
+            auto proccessedProf = (profile.get()->*procFunc)(input15->value());
             if(!proccessedProf)
                 return;
             apply(docker, proccessedProf, getProcessingName(docker, procName));
@@ -1069,9 +1058,9 @@ auto hLayout1_1 = new QHBoxLayout;
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(size_t)>(procedur);
             auto profile = getCurrentProcessing();
-            auto proccessedProf = (profile.get()->*procFunc)(input15->value(), input16->value());
+            auto proccessedProf = (profile.get()->*procFunc)(input15->value());
             if(!proccessedProf)
                 return;
             applyProc(docker, proccessedProf, getProcessingName(docker, procName));

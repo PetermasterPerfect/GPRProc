@@ -50,7 +50,7 @@ public:
 	bool isProfileVisible(std::shared_ptr<Profile>);
 	void removeProcessingStep(QString);
 	void removeProcessingSteps();
-	ads::CDockWidget* addRadargramView(std::shared_ptr<Profile>, QString, QWidget* parent=nullptr);
+	ads::CDockWidget* addRadargramView(std::shared_ptr<Profile>, QString);
 private:
 	QString name;
 	void replotColorScale(QCustomPlot*);

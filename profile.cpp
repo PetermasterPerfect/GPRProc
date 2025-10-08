@@ -43,8 +43,10 @@ Profile::Profile(std::string p): path(p)
 std::cout << "Samples: " << samples << " , traces: " << traces << ", timewindow: " << timeWindow << ", sample time: " << timeWindow/samples << "\n"; 
 	std::cout << "sampling freq: " << fs() << "\n";
 
-	for(size_t i=0; i<marks.size(); i++)
-		std::cout << marks[i] << " ";
+	//for(size_t i=0; i<marks.size(); i++)
+	//	std::cout << marks[i] << " ";
+	for(int i=0; i<samples; i++)
+		std::cout << data[i] << " ";
 	std::cout << "\n";
 	init = true;
 }
@@ -1053,27 +1055,41 @@ std::shared_ptr<Profile> Profile::butterworthFilter(float lowCut, float highCut,
 	return std::make_shared<Profile>(this, filtered);
 }
 
-std::shared_ptr<Profile> Profile::agc(float bt, float sc)
+float rms(float *start, float *end)
 {
-	if(bt < 0)
-		return std::shared_ptr<Profile>{};
+	float ret = 0;
+	float *it = start;
+	size_t n = 0;
+	while(it <= end)
+	{
+		ret += *it * *it;
+		n++;
+		it++;
+	}
+	ret /= n;
+	ret = sqrtf(ret);
+	return ret;
+}
 
+std::shared_ptr<Profile> Profile::agc(size_t window)
+{
 	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
 
-    unsigned int N = 4;
-    float As = 60.0f;       // stopband attenuation [dB]
-    float Ap = 1.0f;        // passband ripple [dB]
-
+	window--;
 	for(size_t i=0; i<traces; i++)
-	{
-		agc_rrrf q = agc_rrrf_create();
-		agc_rrrf_init(q, &data[i*samples], samples);
-		agc_rrrf_set_bandwidth(q, bt);
-		agc_rrrf_set_scale(q, sc);
 		for(size_t j=0; j<samples; j++)
-			agc_rrrf_execute(q, data[i*samples+j], &filtered[i*samples+j]);
-		agc_rrrf_destroy(q);
-	}
+		{
+			size_t r;
+			if(j<=window/2)
+				r = j;
+			else if(j>samples-1-window/2)
+				r = samples-1-j;
+			else
+				r = window/2;
+
+			float div = rms(&data[i*samples+j-r], &data[i*samples+j+r]);
+			filtered[i*samples+j] = data[i*samples+j]/div;
+		}
 
 	return std::make_shared<Profile>(this, filtered);
 }

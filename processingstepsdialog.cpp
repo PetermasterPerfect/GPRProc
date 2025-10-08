@@ -68,7 +68,7 @@ void ProcessingStepsDialog::addShowDeleteButtons(std::pair<QString, std::shared_
 		if(showButton->isFlat())
 			return;
 
-		auto widget = docker->addRadargramView(procStep.second, procStep.first, tabWidget);
+		auto widget = docker->addRadargramView(procStep.second, procStep.first);
 		if(!widget)
 			return;
 		docker->addDockWidget(ads::BottomDockWidgetArea, widget);

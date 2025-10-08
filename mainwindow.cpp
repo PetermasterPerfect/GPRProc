@@ -386,7 +386,6 @@ void MainWindow::showProcStepsDialog()
 void MainWindow::onOpenFile()
 {
 	auto filename = QFileDialog::getOpenFileName(this, tr("Open Image"), "/home/zxcv/geofiz");
-	//QString filename = "/home/zxcv/geofiz/GPRdata/ExampleDuneProfile/DuneData.DZT";
 
 	if(!filename.length())
 		return;

@@ -199,7 +199,7 @@ void ProfileDocker::removeProcessingSteps()
 }
 
 
-ads::CDockWidget* ProfileDocker::addRadargramView(std::shared_ptr<Profile> profile, QString name, QWidget* parent)
+ads::CDockWidget* ProfileDocker::addRadargramView(std::shared_ptr<Profile> profile, QString name)
 {
 	auto widget = new ads::CDockWidget(name, this);
 	auto plotPair = profile->createRadargram(this);

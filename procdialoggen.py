@@ -144,9 +144,8 @@ if __name__ == "__main__":
 
     agc = Procedur("Automatic gain control (AGC)", 'agc', 'agc')
     agc.inputs = [
-            In('QDoubleSpinBox','Bandwidth: ', value='1', rang3='0, 100000', decimals='3', single_step='0.1'),
-            In('QDoubleSpinBox','Scale: ', value='1', rang3='0, 100000', decimals='3', single_step='0.1')]
-
+            In('QSpinBox','Window: ', value='1', rang3='1, profile->samples', single_step='1'),
+            ]
     temp = Template([dc, dewow, gain, ampl0, xflip, yflip, 
                      time_cut, move_start, butterworth, agc])
     with open('proceduresdialog.h', 'w') as f:
