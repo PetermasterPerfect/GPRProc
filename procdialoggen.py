@@ -15,10 +15,16 @@ class In():
         self.mx = kwargs.get("mx")
         self.single_step = kwargs.get("single_step")
         self.decimals = kwargs.get("decimals")
+        self.combo_list = kwargs.get("combo_list")
 
 
     def gen_input(self):
         ret = f"auto {self.name} = new {self.ty};\n"
+    
+        if self.ty == "QComboBox" and self.combo_list:
+            for i, e in enumerate(self.combo_list):
+                ret += f"{self.name}->insertItem({i}, \"{e}\");\n"
+
         if self.rang3:
             ret += f"{self.name}->setRange({self.rang3});\n"
         if self.value:
@@ -93,7 +99,14 @@ class Template():
     hLayout1_{i}->addWidget(new QLabel("{e.label}"));
     hLayout1_{i}->addWidget({e.name});
     layout->addLayout(hLayout1_{i});\n"""
-        args_pass = ', '.join([f'{x.name}->value()' for x in proc.inputs])
+        
+        buf = []
+        for inp in proc.inputs:
+            if 'Spin' in inp.ty:
+                buf.append(f'{inp.name}->value()')
+            elif 'QComboBox' == inp.ty:
+                buf.append(f'{inp.name}->currentIndex()')
+        args_pass = ', '.join(buf)
         return CREATE_PAGE.format(name, proc.label, setup, layouts, proc.prototype, args_pass, proc.prototype, args_pass, extra=proc.extra)
 
 
@@ -146,8 +159,19 @@ if __name__ == "__main__":
     agc.inputs = [
             In('QSpinBox','Window: ', value='1', rang3='1, profile->samples', single_step='1'),
             ]
+
+    background_removal = Procedur("Background removal", "backgroundRemoval", "backgroundRemoval")
+    background_removal.inputs = [
+            In('QDoubleSpinBox','Start time: ', value='0', rang3='0, profile->timeWindow-profile->timeWindow/profile->samples', decimals='3', single_step='0.001'),
+            In('QDoubleSpinBox','End time: ', value='profile->timeWindow-profile->timeWindow/profile->samples', rang3='0, profile->timeWindow-profile->timeWindow/profile->samples', decimals='3', single_step='0.001'),
+            In('QDoubleSpinBox','Start trace: ', value='0', rang3='0, profile->traces-1', single_step='1'),
+            In('QDoubleSpinBox','End trace: ', value='profile->traces-1', rang3='0, profile->traces-1', single_step='1'),
+            In('QComboBox', 'Type: ', combo_list = ["Whole trace", "Part trace", "Mean inside", "All inside"])]
+
     temp = Template([dc, dewow, gain, ampl0, xflip, yflip, 
-                     time_cut, move_start, butterworth, agc])
+                     time_cut, move_start, butterworth, agc, background_removal])
+
+
     with open('proceduresdialog.h', 'w') as f:
         f.write(temp.gen_hdr())
     with open('proceduresdialog.cpp', 'w') as f:

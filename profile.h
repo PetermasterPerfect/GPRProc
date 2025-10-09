@@ -19,6 +19,14 @@ using file_pair = std::pair<std::string, std::string>;// file_pair;
 std::ifstream open_both_cases(std::string name, std::string ext);
 file_pair split_filename(std::string fname);
 
+enum BackgroundRemovalType 
+{
+	WholeTrace,
+	PartTrace,
+	MeanInside,
+	AllInside
+};
+
 struct Profile
 {
 	std::string path;
@@ -50,6 +58,7 @@ struct Profile
 	std::shared_ptr<Profile> moveStartTime(float);
 	std::shared_ptr<Profile> butterworthFilter(float, float, float, float);
 	std::shared_ptr<Profile> agc(size_t);
+std::shared_ptr<Profile> backgroundRemoval(float, float, size_t, size_t, char );
 
 	size_t* naivePicking();
 	float* maxSamplePerTrace();

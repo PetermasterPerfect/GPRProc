@@ -1094,6 +1094,98 @@ std::shared_ptr<Profile> Profile::agc(size_t window)
 	return std::make_shared<Profile>(this, filtered);
 }
 
+std::shared_ptr<Profile> Profile::backgroundRemoval(float startTime, float endTime, size_t startTrace, size_t endTrace, char type)
+{
+
+	if(startTime >= endTime || startTrace >= endTrace)
+		return std::shared_ptr<Profile>{};
+	
+	float meanTimeStart = 0, meanTimeEnd = timeDomain[samples-1];
+	size_t meanTraceStart = 0, meanTraceEnd = traces-1;
+
+	switch(type)
+	{
+		case PartTrace:
+			meanTimeStart = startTime;
+			meanTimeEnd = endTime;
+			break;
+		case MeanInside:
+		case AllInside:
+			meanTimeStart = startTime;
+			meanTimeEnd = endTime;
+
+			meanTraceStart = startTrace;
+			meanTraceEnd = endTrace;
+	}
+
+	size_t meanSampleStart, meanSampleEnd;
+	bool fs, fe;
+	fs = fe = false;
+
+	for(size_t j=0; j<samples; j++)
+		if(timeDomain[j] >= meanTimeStart && !fs)
+		{
+			meanSampleStart = j;
+			fs = true;
+		}
+		else if(timeDomain[j] >= meanTimeEnd && !fe)
+		{
+			meanSampleEnd = j;
+			fe = true;
+			break;
+		}
+
+	double buf = 0;
+	size_t n = 0;
+
+	for(size_t i=meanTraceStart; i<meanTraceEnd; i++)
+		for(size_t j=meanSampleStart; j<meanSampleEnd; j++)
+		{
+			buf += data[i*samples+j];
+			n++;
+		}
+
+	buf /= n;
+	float mean = (float)buf;
+
+	switch(type)
+	{
+		case WholeTrace:
+			meanSampleStart = 0;
+			meanSampleEnd = samples-1;
+			meanTraceStart = 0;
+			meanTraceEnd = traces-1;
+			break;
+
+		case PartTrace:
+		case MeanInside:
+			meanTraceStart = 0;
+			meanTraceEnd = traces-1;
+			break;
+	}
+
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
+
+
+	for(size_t i=0; i<traces; i++)
+		for(size_t j=0; j<samples; j++)
+		{
+			if(i >= meanTraceStart && i < meanTraceEnd &&
+					j >= meanSampleStart && j < meanSampleEnd)
+				filtered[i*samples+j] = data[i*samples+j]-mean;
+			else
+				filtered[i*samples+j] = data[i*samples+j];
+
+		}
+
+	//for(size_t i=meanTraceStart; i<meanTraceEnd; i++)
+	//	for(size_t j=meanSampleStart; j<meanSampleEnd; j++)
+	//		filtered[i*sample+j] = data[i*samples+j]-mean;
+
+
+	return std::make_shared<Profile>(this, filtered);
+}
+
 size_t* Profile::naivePicking()
 {
 	const float threshold = 0.2;
