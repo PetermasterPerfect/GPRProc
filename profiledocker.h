@@ -54,6 +54,7 @@ public:
 private:
 	QString name;
 	void replotColorScale(QCustomPlot*);
+	void resetProperties();
 };
 
 #endif

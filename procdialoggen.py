@@ -168,8 +168,13 @@ if __name__ == "__main__":
             In('QDoubleSpinBox','End trace: ', value='profile->traces-1', rang3='0, profile->traces-1', single_step='1'),
             In('QComboBox', 'Type: ', combo_list = ["Whole trace", "Part trace", "Mean inside", "All inside"])]
 
+    horizontalScaling = Procedur("Horizontal scale", "horizontalScale", "horizontalScale")
+    horizontalScaling.inputs = [
+            In('QSpinBox','End trace: ', value='1', rang3='1, profile->traces-1', single_step='1'),
+            In('QComboBox', 'Type: ', combo_list = ["Stack", "Skip"])]
+
     temp = Template([dc, dewow, gain, ampl0, xflip, yflip, 
-                     time_cut, move_start, butterworth, agc, background_removal])
+                     time_cut, move_start, butterworth, agc, background_removal, horizontalScaling])
 
 
     with open('proceduresdialog.h', 'w') as f:

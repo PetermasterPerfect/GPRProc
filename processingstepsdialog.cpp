@@ -25,7 +25,6 @@ ProcessingStepsDialog::ProcessingStepsDialog(QTabWidget *tab, QWidget *parent)
 
 	auto timer = new QTimer(this);
 	connect(timer, &QTimer::timeout, this, [=]() {
-			std::cout << "TIMER\n";
 			deleteMutex.lock();
 			for(auto const& x: docker->processingSteps)
 			{
@@ -77,7 +76,6 @@ void ProcessingStepsDialog::addShowDeleteButtons(std::pair<QString, std::shared_
 			});
 
 	connect(deleteButton, &QPushButton::clicked, this, [=](){
-			std::cout << "del start\n";
 			deleteMutex.lock();
 			if(docker->processingSteps.size() == 1)
 				tabWidget->removeTab(tabWidget->currentIndex());
@@ -88,7 +86,6 @@ void ProcessingStepsDialog::addShowDeleteButtons(std::pair<QString, std::shared_
 			if (pos != steps.end())
 				steps.erase(pos);
 			docker->removeProcessingStep(procName);
-			std::cout << "del end\n";
 			deleteMutex.unlock();
 
 			});

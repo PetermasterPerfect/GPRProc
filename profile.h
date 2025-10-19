@@ -27,6 +27,12 @@ enum BackgroundRemovalType
 	AllInside
 };
 
+enum HorizontalScaleType
+{
+	Stacking,
+	Skipping
+};
+
 struct Profile
 {
 	std::string path;
@@ -57,8 +63,12 @@ struct Profile
 	std::shared_ptr<Profile> timeCut(float);
 	std::shared_ptr<Profile> moveStartTime(float);
 	std::shared_ptr<Profile> butterworthFilter(float, float, float, float);
+	// TODO: think about changing size_t argument to int 
+	//  QSpinBox return integer value 
 	std::shared_ptr<Profile> agc(size_t);
-std::shared_ptr<Profile> backgroundRemoval(float, float, size_t, size_t, char );
+	std::shared_ptr<Profile> backgroundRemoval(float, float, size_t, size_t, char );
+	std::shared_ptr<Profile> horizontalScale(int, char);
+
 
 	size_t* naivePicking();
 	float* maxSamplePerTrace();
@@ -84,6 +94,7 @@ private:
 	void readMarks(std::ifstream&, int, size_t, tagRFHeader *);
 	void detectMarks(float*); 
 	std::vector<size_t> readMarksFromDzx(std::string);
+	std::pair<size_t, size_t> timeRangeToIndexes(float, float);
 	template<class T>
 	void read_rd37()
 	{
@@ -116,6 +127,10 @@ private:
 		}
 		return dt;
 	}
+
+
+	std::shared_ptr<Profile> horizontalScaleStack(int);
+	std::shared_ptr<Profile> horizontalScaleSkip(int);
 	
 };
 

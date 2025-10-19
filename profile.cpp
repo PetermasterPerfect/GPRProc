@@ -2,6 +2,37 @@
 #include <cmath>
 #include <liquid.h>
 
+float rms(float *start, float *end)
+{
+	float ret = 0;
+	float *it = start;
+	size_t n = 0;
+	while(it <= end)
+	{
+		ret += *it * *it;
+		n++;
+		it++;
+	}
+	ret /= n;
+	ret = sqrtf(ret);
+	return ret;
+}
+
+float mean(float *start, float *end)
+{
+	float ret = 0;
+	float *it = start;
+	size_t n = 0;
+	while(it <= end)
+	{
+		ret += *it;
+		n++;
+		it++;
+	}
+	return ret/n;
+}
+
+
 file_pair split_filename(std::string fname)
 {
 	size_t dot_pos = fname.find_last_of('.');
@@ -45,8 +76,6 @@ std::cout << "Samples: " << samples << " , traces: " << traces << ", timewindow:
 
 	//for(size_t i=0; i<marks.size(); i++)
 	//	std::cout << marks[i] << " ";
-	for(int i=0; i<samples; i++)
-		std::cout << data[i] << " ";
 	std::cout << "\n";
 	init = true;
 }
@@ -758,29 +787,14 @@ std::shared_ptr<Profile> Profile::subtractDcShift(float t1, float t2)
 
 	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
 	std::vector<float> means;
-	size_t start, end;
-	bool fs, fe;
-	fs = fe = false;
-
-	for(size_t j=0; j<samples; j++)
-		if(timeDomain[j] >= t1 && !fs)
-		{
-			start = j;
-			fs = true;
-		}
-		else if(timeDomain[j] > t2 && !fe)
-		{
-			end = j;
-			fe = true;
-			break;
-		}
+	auto range = timeRangeToIndexes(t1, t2);
 
 	for(size_t i=0; i<traces; i++)
 	{
 		float mean = 0;
-		for(size_t j=start; j<end; j++)
+		for(size_t j=range.first; j<range.second; j++)
 			mean += data[i*samples+j];
-		means.push_back(mean/(end-start));
+		means.push_back(mean/(range.second-range.first));
 	}
 
 	for(size_t i=0; i<traces; i++)
@@ -1055,21 +1069,7 @@ std::shared_ptr<Profile> Profile::butterworthFilter(float lowCut, float highCut,
 	return std::make_shared<Profile>(this, filtered);
 }
 
-float rms(float *start, float *end)
-{
-	float ret = 0;
-	float *it = start;
-	size_t n = 0;
-	while(it <= end)
-	{
-		ret += *it * *it;
-		n++;
-		it++;
-	}
-	ret /= n;
-	ret = sqrtf(ret);
-	return ret;
-}
+
 
 std::shared_ptr<Profile> Profile::agc(size_t window)
 {
@@ -1092,6 +1092,30 @@ std::shared_ptr<Profile> Profile::agc(size_t window)
 		}
 
 	return std::make_shared<Profile>(this, filtered);
+}
+
+
+
+std::pair<size_t, size_t> Profile::timeRangeToIndexes(float startTime, float endTime)
+{
+	auto ret = std::make_pair((size_t)0, (size_t)samples-1);
+	bool fs, fe;
+	fs = fe = false;
+
+	for(size_t j=0; j<samples; j++)
+		if(timeDomain[j] >= startTime && !fs)
+		{
+			ret.first = j;
+			fs = true;
+		}
+		else if(timeDomain[j] >= endTime && !fe)
+		{
+			ret.second = j;
+			fe = true;
+			break;
+		}
+	
+	return ret;
 }
 
 std::shared_ptr<Profile> Profile::backgroundRemoval(float startTime, float endTime, size_t startTrace, size_t endTrace, char type)
@@ -1118,28 +1142,13 @@ std::shared_ptr<Profile> Profile::backgroundRemoval(float startTime, float endTi
 			meanTraceEnd = endTrace;
 	}
 
-	size_t meanSampleStart, meanSampleEnd;
-	bool fs, fe;
-	fs = fe = false;
-
-	for(size_t j=0; j<samples; j++)
-		if(timeDomain[j] >= meanTimeStart && !fs)
-		{
-			meanSampleStart = j;
-			fs = true;
-		}
-		else if(timeDomain[j] >= meanTimeEnd && !fe)
-		{
-			meanSampleEnd = j;
-			fe = true;
-			break;
-		}
+	auto meanSamplesIndexes = timeRangeToIndexes(meanTimeStart, meanTimeEnd);
 
 	double buf = 0;
 	size_t n = 0;
 
 	for(size_t i=meanTraceStart; i<meanTraceEnd; i++)
-		for(size_t j=meanSampleStart; j<meanSampleEnd; j++)
+		for(size_t j=meanSamplesIndexes.first; j<meanSamplesIndexes.second; j++)
 		{
 			buf += data[i*samples+j];
 			n++;
@@ -1151,18 +1160,14 @@ std::shared_ptr<Profile> Profile::backgroundRemoval(float startTime, float endTi
 	switch(type)
 	{
 		case WholeTrace:
-			meanSampleStart = 0;
-			meanSampleEnd = samples-1;
-			meanTraceStart = 0;
-			meanTraceEnd = traces-1;
-			break;
-
 		case PartTrace:
 		case MeanInside:
 			meanTraceStart = 0;
 			meanTraceEnd = traces-1;
 			break;
 	}
+
+	meanSamplesIndexes = timeRangeToIndexes(startTime, endTime);
 
 	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
 
@@ -1171,7 +1176,7 @@ std::shared_ptr<Profile> Profile::backgroundRemoval(float startTime, float endTi
 		for(size_t j=0; j<samples; j++)
 		{
 			if(i >= meanTraceStart && i < meanTraceEnd &&
-					j >= meanSampleStart && j < meanSampleEnd)
+					j >= meanSamplesIndexes.first && j < meanSamplesIndexes.second)
 				filtered[i*samples+j] = data[i*samples+j]-mean;
 			else
 				filtered[i*samples+j] = data[i*samples+j];
@@ -1184,6 +1189,69 @@ std::shared_ptr<Profile> Profile::backgroundRemoval(float startTime, float endTi
 
 
 	return std::make_shared<Profile>(this, filtered);
+}
+
+
+std::shared_ptr<Profile> Profile::horizontalScale(int n, char type)
+{
+	switch(type)
+	{
+		case Stacking:
+			return horizontalScaleStack(n);
+		case Skipping:
+			return horizontalScaleSkip(n);
+	}
+
+}
+
+
+std::shared_ptr<Profile> Profile::horizontalScaleStack(int n)
+{
+	size_t newTraces = traces % n ? traces/n + 1 : traces/n;
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*newTraces);
+	size_t filIdx = 0;
+	for(int i=0; i<traces; i+=n)
+	{
+		if(i+n >= traces)
+			n = traces-i;
+		for(int j=0; j<samples; j++)
+		{
+			float sum = 0;
+			for(int k=i; k<i+n; k++)
+				sum = data[k*samples+j];
+			filtered[filIdx++] = sum/n;
+
+		}
+	}
+
+	auto prof = std::make_shared<Profile>(newTraces, samples, timeWindow, filtered);
+	if(marks.size())
+		prof->marks = marks;
+	return prof;
+}
+
+
+std::shared_ptr<Profile> Profile::horizontalScaleSkip(int n)
+{
+	if(n == 1)
+		return std::shared_ptr<Profile>{};
+
+	size_t newTraces = traces % n ? traces/n+1 : traces/n;
+	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*newTraces);
+	size_t filIdx = 0;
+	for(int i=0; i<traces; i++)
+	{
+		if(i % n == 1)
+		{
+			for(int j=0; j<samples; j++)
+				filtered[filIdx*samples+j] = data[i*samples+j];
+			filIdx++;
+		}
+	}
+	auto prof = std::make_shared<Profile>(newTraces, samples, timeWindow, filtered);
+	if(marks.size())
+		prof->marks = marks;
+	return prof;
 }
 
 size_t* Profile::naivePicking()

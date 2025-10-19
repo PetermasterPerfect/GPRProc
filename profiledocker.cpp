@@ -73,6 +73,9 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks)
 				{
 					size_t n = profile->marks.size();
 					while(n)
+					{
+						if(!plot->itemCount())
+							break;
 						for(int i=0; i<plot->itemCount(); i++)
 							if(auto line = dynamic_cast<QCPItemStraightLine*>(plot->item(i)))
 							{
@@ -80,6 +83,7 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks)
 								n--;
 								break;
 							}
+					}
 				}
 				profile->marksOn = marks;
 
@@ -199,6 +203,13 @@ void ProfileDocker::removeProcessingSteps()
 }
 
 
+void ProfileDocker::resetProperties()
+{
+	traceNormalization = false;
+	userMarks = false;
+	scale = 1;
+}
+
 ads::CDockWidget* ProfileDocker::addRadargramView(std::shared_ptr<Profile> profile, QString name)
 {
 	auto widget = new ads::CDockWidget(name, this);
@@ -215,6 +226,8 @@ ads::CDockWidget* ProfileDocker::addRadargramView(std::shared_ptr<Profile> profi
 				std::cout << "dock widget closing\n";
 				removeDockWidget(widget);
 				removeColorMap(plotPair.value().first);
+				//if(dockWidgets().size() == 0)
+				//	resetProperties();
 			});
 
 
