@@ -1207,23 +1207,26 @@ std::shared_ptr<Profile> Profile::horizontalScale(int n, char type)
 
 std::shared_ptr<Profile> Profile::horizontalScaleStack(int n)
 {
-	size_t newTraces = traces % n ? traces/n + 1 : traces/n;
+	if(n == 1)
+		return std::shared_ptr<Profile>{};
+
+	size_t newTraces = n >= traces/2 ? 1 : traces/ n;// ? traces/n+1 : traces/n;
+	if(!newTraces)
+		return std::shared_ptr<Profile>{};
+
 	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*newTraces);
 	size_t filIdx = 0;
-	for(int i=0; i<traces; i+=n)
+	for(int i=n; i<traces; i+=n)
 	{
-		if(i+n >= traces)
-			n = traces-i;
-		for(int j=0; j<samples; j++)
-		{
-			float sum = 0;
-			for(int k=i; k<i+n; k++)
-				sum = data[k*samples+j];
-			filtered[filIdx++] = sum/n;
-
-		}
+			for(int j=0; j<samples; j++)
+			{
+				double sum;
+				for(int k=i-n; k<i; k++)
+					sum = data[k*samples+j];
+				filtered[filIdx*samples+j] = sum/n;
+			}
+			filIdx++;
 	}
-
 	auto prof = std::make_shared<Profile>(newTraces, samples, timeWindow, filtered);
 	if(marks.size())
 		prof->marks = marks;
@@ -1236,12 +1239,15 @@ std::shared_ptr<Profile> Profile::horizontalScaleSkip(int n)
 	if(n == 1)
 		return std::shared_ptr<Profile>{};
 
-	size_t newTraces = traces % n ? traces/n+1 : traces/n;
+	size_t newTraces = n >= traces/2 ? 1 : traces/ n;// ? traces/n+1 : traces/n;
+	if(!newTraces)
+		return std::shared_ptr<Profile>{};
+
 	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*newTraces);
 	size_t filIdx = 0;
-	for(int i=0; i<traces; i++)
+	for(int i=n; i<traces; i++)
 	{
-		if(i % n == 1)
+		if(i%n == 0)
 		{
 			for(int j=0; j<samples; j++)
 				filtered[filIdx*samples+j] = data[i*samples+j];

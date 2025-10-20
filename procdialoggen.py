@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
     horizontalScaling = Procedur("Horizontal scale", "horizontalScale", "horizontalScale")
     horizontalScaling.inputs = [
-            In('QSpinBox','End trace: ', value='1', rang3='1, profile->traces-1', single_step='1'),
+            In('QSpinBox','End trace: ', value='1', rang3='1, profile->traces-2', single_step='1'),
             In('QComboBox', 'Type: ', combo_list = ["Stack", "Skip"])]
 
     temp = Template([dc, dewow, gain, ampl0, xflip, yflip, 
