@@ -16,6 +16,7 @@ qt_add_executable(GPRProc
 	profiledocker.cpp
 	proceduresdialog.cpp
 	processingstepsdialog.cpp
+	loadmarksdialog.cpp
 	pugixml.cpp
 )
 

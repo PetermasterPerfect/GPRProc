@@ -57,11 +57,13 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 #endif // QT_NO_CONTEXTMENU
 	   
 
-void MainWindow::print()
+void MainWindow::loadUserMarks()
 {
-    QMessageBox::about(this, tr("PRINT"),
-            tr("The <b>Menu</b> example shows how to create "
-               "menu-bar menus and context menus."));
+	if(!mainTab->tabWidget->currentWidget())
+		return;
+    LoadUserMarksDialog *loadDialog = new LoadUserMarksDialog(mainTab->tabWidget, userMarksAct, this);
+    loadDialog->setAttribute(Qt::WA_DeleteOnClose);
+    loadDialog->exec(); 
 }
 
 void MainWindow::undo()
@@ -258,11 +260,10 @@ void MainWindow::createActions()
     connect(openAct, &QAction::triggered, this, &MainWindow::onOpenFile);
 
 
-    printAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentPrint),
-                           tr("&Print..."), this);
-    printAct->setShortcuts(QKeySequence::Print);
-    printAct->setStatusTip(tr("Print the document"));
-    connect(printAct, &QAction::triggered, this, &MainWindow::print);
+    loadMarksAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentPrint),
+                           tr("&Load marks..."), this);
+    loadMarksAct->setStatusTip(tr("Load the user marks"));
+    connect(loadMarksAct, &QAction::triggered, this, &MainWindow::loadUserMarks);
 
     exitAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::ApplicationExit),
                           tr("E&xit"), this);
@@ -314,7 +315,7 @@ void MainWindow::createMenus()
 {
     fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(openAct);
-    fileMenu->addAction(printAct);
+    fileMenu->addAction(loadMarksAct);
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
 

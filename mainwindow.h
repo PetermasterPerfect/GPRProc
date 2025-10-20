@@ -8,6 +8,7 @@
 #include "tabbedworkspacewidget.h"
 #include "proceduresdialog.h"
 #include "processingstepsdialog.h"
+#include "loadmarksdialog.h"
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -30,7 +31,7 @@ protected:
 
 public slots:
     void onOpenFile();
-    void print();
+    void loadUserMarks();
     void undo();
     void redo();
 	void wiggleView();
@@ -54,7 +55,7 @@ private:
     QMenu *processingMenu;
 	QToolBar* toolBar;
     QAction *openAct;
-    QAction *printAct;
+    QAction *loadMarksAct;
     QAction *exitAct;
     QAction *undoAct;
     QAction *redoAct;

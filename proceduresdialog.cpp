@@ -13,25 +13,25 @@ ProceduresDialog::ProceduresDialog(QTabWidget *tab, QWidget *parent)
 	if (!docker)
 		return;
 
-    QVBoxLayout *radioLayout = new QVBoxLayout;
+    QVBoxLayout *radioLayout = new QVBoxLayout(this);
 	for(int i=0; i<proceduresRadios.size(); i++)
 	{
-		proceduresRadios[i] = new QRadioButton(gProceduresNames[i]);
+		proceduresRadios[i] = new QRadioButton(gProceduresNames[i], this);
 		radioLayout->addWidget(proceduresRadios[i]);
 	}
 	proceduresRadios[0]->setChecked(true); //dc-shift radio button
 	
-    QWidget *radioWidget = new QWidget;
+    QWidget *radioWidget = new QWidget(this);
     radioWidget->setLayout(radioLayout);
 
-	procStepsCombo = new MyQComboBox;
+	procStepsCombo = new MyQComboBox(this);
 	int i=0;
 	for(auto &it : docker->processingSteps)
 		procStepsCombo->insertItem(i++, it.first);
 	
 	setupStackedOptions();
 
-	auto lineA = new QFrame;
+	auto lineA = new QFrame(this);
 	lineA->setFrameShape(QFrame::HLine);
 	lineA->setFrameShadow(QFrame::Sunken);
 

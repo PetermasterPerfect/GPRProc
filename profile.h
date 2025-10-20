@@ -74,6 +74,10 @@ struct Profile
 	float* maxSamplePerTrace();
 	float maxAmplitude();
 	float minAmplitude();
+
+	void loadMarksFromVector(std::vector<size_t>);
+	static std::vector<size_t> loadMarksIndexesFromFile(std::string);
+
 	Profile() {}
 	Profile(Profile&);
 	Profile(Profile&&);

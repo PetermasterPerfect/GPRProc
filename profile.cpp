@@ -1210,7 +1210,7 @@ std::shared_ptr<Profile> Profile::horizontalScaleStack(int n)
 	if(n == 1)
 		return std::shared_ptr<Profile>{};
 
-	size_t newTraces = n >= traces/2 ? 1 : traces/ n;// ? traces/n+1 : traces/n;
+	size_t newTraces = n >= traces/2 ? 1 : traces/ n;
 	if(!newTraces)
 		return std::shared_ptr<Profile>{};
 
@@ -1239,7 +1239,7 @@ std::shared_ptr<Profile> Profile::horizontalScaleSkip(int n)
 	if(n == 1)
 		return std::shared_ptr<Profile>{};
 
-	size_t newTraces = n >= traces/2 ? 1 : traces/ n;// ? traces/n+1 : traces/n;
+	size_t newTraces = n >= traces/2 ? 1 : traces/ n;
 	if(!newTraces)
 		return std::shared_ptr<Profile>{};
 
@@ -1258,6 +1258,40 @@ std::shared_ptr<Profile> Profile::horizontalScaleSkip(int n)
 	if(marks.size())
 		prof->marks = marks;
 	return prof;
+}
+
+void Profile::loadMarksFromVector(std::vector<size_t> newMarks)
+{
+	if(any_of(newMarks.begin(), newMarks.end(), [=](size_t x){return x >= traces;}))
+		throw std::out_of_range("Not enough traces");
+
+	marks = newMarks;
+}
+
+std::vector<size_t> Profile::loadMarksIndexesFromFile(std::string fileName)
+{
+	std::ifstream f(fileName, std::ios::binary);
+	if(!f)
+		throw std::runtime_error("Cant open marks file");
+
+	std::stringstream buf;
+	buf << f.rdbuf();
+
+	std::vector<std::string> idxStrings;
+	boost::split(idxStrings, buf.str(), boost::is_space(), boost::token_compress_on);
+	
+	std::vector<size_t> marks;
+	for(auto &x : idxStrings)
+	{
+		if(x.empty())
+			continue;
+		auto val = stoll(x);
+		if(val < 0)
+			throw std::out_of_range("Negative value");
+		marks.push_back(val);
+	}
+	
+	return marks;
 }
 
 size_t* Profile::naivePicking()
