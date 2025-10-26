@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.25)
 add_compile_options(-g -fsanitize=address)
 add_link_options(-fsanitize=address)
 project(GPRProc LANGUAGES CXX)
@@ -8,16 +8,16 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets PrintSupport)
 qt_standard_project_setup()
 
 qt_add_executable(GPRProc
-    main.cpp
-    mainwindow.cpp
-	qcustomplot.cpp
-	tabbedworkspacewidget.cpp
-	profile.cpp
-	profiledocker.cpp
-	proceduresdialog.cpp
-	processingstepsdialog.cpp
-	loadmarksdialog.cpp
-	pugixml.cpp
+    src/main.cpp
+    src/mainwindow.cpp
+	src/qcustomplot.cpp
+	src/tabbedworkspacewidget.cpp
+	src/profile.cpp
+	src/profiledocker.cpp
+	src/proceduresdialog.cpp
+	src/processingstepsdialog.cpp
+	src/loadmarksdialog.cpp
+	src/pugixml.cpp
 )
 
 set_target_properties(GPRProc PROPERTIES
