@@ -1,6 +1,8 @@
 #include "profile.h"
 #include <cmath>
 #include <liquid.h>
+#include <nmea/sentence.hpp>
+#include <nmea/message/gga.hpp>
 
 float rms(float *start, float *end)
 {
@@ -366,7 +368,7 @@ void Profile::open_gssi(std::string name)
 		data = read_typed_data<int32_t>(in, sz, moveOff);
 	traces = sz/samples;
 
-
+	readGPSFromDzg(name);
 	readMarks(in, channel, offset, &hdr);
 	if(!marks.size())
 	{
@@ -523,12 +525,41 @@ void Profile::readMarks(std::ifstream &in, int channel, size_t offset, tagRFHead
 	}
 }
 
-struct __attribute__((packed)) TraceValues {
-    uint16_t normal_first;
-    uint16_t normal_second;
-    uint16_t marker_first;
-    uint16_t marker_second;
-};
+
+void Profile::readGPSFromDzg(std::string name)
+{
+	std::ifstream inDzg = open_both_cases(name, ".DZG"); 
+	if(!inDzg)
+		return;
+
+	std::string line;
+	while(std::getline(inDzg, line))
+	{
+		nmea::sentence nmea_sentence(line);
+		if(nmea_sentence.type() == "GGA")
+		{
+			// Parse GGA message from NMEA sentence.
+			nmea::gga gga(nmea_sentence);
+
+			// Print UTC time of day (seconds since 12:00AM UTC).
+			std::cout << "UTC: " << std::fixed << std::setprecision(2) << gga.utc.get() << std::endl;
+
+			// Check if latitude is provided in the message.
+			if(gga.latitude.exists())
+			{
+				// Print latitude.
+				std::cout << "Latitude: " << std::fixed << std::setprecision(6) << gga.latitude.get() << std::endl;
+			}
+
+			// Check if longitude is provided in the message.
+			if(gga.longitude.exists())
+			{
+				// Print longitude.
+				std::cout << "Longitude: " << std::fixed << std::setprecision(6) << gga.longitude.get() << std::endl;
+			}
+		}
+	}
+}
 
 void Profile::detectMarks(float *dt)
 {

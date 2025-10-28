@@ -3,8 +3,9 @@ add_compile_options(-g -fsanitize=address)
 add_link_options(-fsanitize=address)
 project(GPRProc LANGUAGES CXX)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets PrintSupport)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets PrintSupport QuickWidgets Location Positioning)
 
+set(CMAKE_AUTORCC ON)
 qt_standard_project_setup()
 
 qt_add_executable(GPRProc
@@ -18,6 +19,7 @@ qt_add_executable(GPRProc
 	src/processingstepsdialog.cpp
 	src/loadmarksdialog.cpp
 	src/pugixml.cpp
+	src/qml/qml.qrc
 )
 
 set_target_properties(GPRProc PROPERTIES
@@ -27,19 +29,23 @@ set_target_properties(GPRProc PROPERTIES
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build the examples" FORCE)
 add_subdirectory(thirdparty/Qt-Advanced-Docking-System)
 add_subdirectory(thirdparty/liquid-dsp)
+add_subdirectory(thirdparty/nmea)
 include_directories(thirdparty/liquid-dsp/include/)
 include_directories(thirdparty/Qt-Advanced-Docking-System/src)
+include_directories(thirdparty/nmea/include)
 
 target_link_libraries(GPRProc PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
 	Qt6::PrintSupport
+	Qt6::Location Qt6::Positioning
+	Qt6::QuickWidgets
 	qtadvanceddocking
 	fftw3f
 	liquid
+	nmea
 )
-
 
 install(TARGETS GPRProc
     BUNDLE  DESTINATION .

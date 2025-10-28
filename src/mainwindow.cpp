@@ -1,4 +1,5 @@
 #include <QtWidgets>
+#include <QQuickWidget>
 #include "mainwindow.h"
 #include <iostream>
 
@@ -303,6 +304,10 @@ void MainWindow::createActions()
 	userMarksAct->setCheckable(true);
     connect(userMarksAct, &QAction::triggered, this, &MainWindow::userMarks);
 
+	mapViewAct = new QAction(tr("&Map view"), this);
+    mapViewAct->setStatusTip(tr("Open map view"));
+    connect(mapViewAct, &QAction::triggered, this, &MainWindow::mapView);
+
     proceduresAct = new QAction(tr("&Procedures"), this);
     connect(proceduresAct, &QAction::triggered, this, &MainWindow::showProceduresDialog);
 
@@ -329,6 +334,7 @@ void MainWindow::createMenus()
 	viewMenu->addAction(traceNormalizationAct);
 	viewMenu->addAction(colorScaleAct);
 	viewMenu->addAction(userMarksAct);
+	viewMenu->addAction(mapViewAct);
 
 	processingMenu = menuBar()->addMenu(tr("&Processing"));
 	processingMenu->addAction(proceduresAct);
@@ -364,6 +370,23 @@ void MainWindow::createToolbar()
 			docker->replot(val);
 			});
 
+}
+
+
+void MainWindow::mapView()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+	if(!docker)
+		return;
+
+    QQuickWidget *mapView = new QQuickWidget;
+    mapView->setResizeMode(QQuickWidget::SizeRootObjectToView);
+    mapView->setSource(QUrl(QStringLiteral("qrc:/mapview.qml")));
+    mapView->resize(1024, 768);
+	//mapView->show();
+	auto widget = new ads::CDockWidget("Map", this);
+	widget->setWidget(mapView);
+	docker->addDockWidget(ads::TopDockWidgetArea, widget);
 }
 
 void MainWindow::showProceduresDialog()

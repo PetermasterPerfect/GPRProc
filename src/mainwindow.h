@@ -38,6 +38,7 @@ public slots:
 	void traceNormalization();
 	void colorScale();
 	void userMarks();
+	void mapView();
 
 private:
     void createActions();
@@ -63,6 +64,7 @@ private:
 	QAction *traceNormalizationAct;
 	QAction *colorScaleAct;
 	QAction *userMarksAct;
+	QAction *mapViewAct;
 	QAction *proceduresAct;
 	QAction *procStepsAct;
 	QComboBox *colormapCombo;

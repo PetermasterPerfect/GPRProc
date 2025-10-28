@@ -177,7 +177,7 @@ if __name__ == "__main__":
                      time_cut, move_start, butterworth, agc, background_removal, horizontalScaling])
 
 
-    with open('proceduresdialog.h', 'w') as f:
+    with open('src/proceduresdialog.h', 'w') as f:
         f.write(temp.gen_hdr())
-    with open('proceduresdialog.cpp', 'w') as f:
+    with open('src/proceduresdialog.cpp', 'w') as f:
         f.write(temp.gen_src())

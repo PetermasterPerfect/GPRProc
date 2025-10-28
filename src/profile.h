@@ -99,6 +99,7 @@ private:
 	void detectMarks(float*); 
 	std::vector<size_t> readMarksFromDzx(std::string);
 	std::pair<size_t, size_t> timeRangeToIndexes(float, float);
+	void readGPSFromDzg(std::string);
 	template<class T>
 	void read_rd37()
 	{
