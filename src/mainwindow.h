@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QtQml/qqmlregistration.h>
+#include <QQmlContext>
 #include "qcustomplot.h"
 #include "DockManager.h"
 #include "profile.h"
@@ -16,6 +18,17 @@ class QActionGroup;
 class QLabel;
 class QMenu;
 QT_END_NAMESPACE
+
+class Point : public QObject
+{
+    Q_OBJECT
+    QML_ELEMENT
+
+public:
+	Point(QObject *parent=nullptr): QObject(parent) {}
+signals:
+	void drawPoint(double, double);
+};
 
 class MainWindow : public QMainWindow
 {
@@ -40,6 +53,8 @@ public slots:
 	void userMarks();
 	void mapView();
 
+signals:
+	void onDrawPoint();
 private:
     void createActions();
     void createMenus();

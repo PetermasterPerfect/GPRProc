@@ -379,14 +379,30 @@ void MainWindow::mapView()
 	if(!docker)
 		return;
 
-    QQuickWidget *mapView = new QQuickWidget;
-    mapView->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    mapView->setSource(QUrl(QStringLiteral("qrc:/mapview.qml")));
-    mapView->resize(1024, 768);
-	//mapView->show();
+	QQuickWidget *mapView = new QQuickWidget(this);
+	mapView->setResizeMode(QQuickWidget::SizeRootObjectToView);
+
+	Point *p = new Point(mapView);
+	mapView->rootContext()->setContextProperty("point", p);
+
+	mapView->setSource(QUrl(QStringLiteral("qrc:/mapview.qml")));
+
 	auto widget = new ads::CDockWidget("Map", this);
 	widget->setWidget(mapView);
 	docker->addDockWidget(ads::TopDockWidgetArea, widget);
+
+	if(docker->processingSteps.size())
+	{
+		auto beg = docker->processingSteps.begin();
+		for(auto &x: beg->second->readGPSFromDzg())
+			emit p->drawPoint(x.first, x.second);
+
+	}
+	else if(auto prof = docker->anonymousProc.second)
+	{
+		for(auto &x: prof->readGPSFromDzg())
+			emit p->drawPoint(x.first, x.second);
+	}
 }
 
 void MainWindow::showProceduresDialog()

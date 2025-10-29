@@ -77,6 +77,7 @@ struct Profile
 
 	void loadMarksFromVector(std::vector<size_t>);
 	static std::vector<size_t> loadMarksIndexesFromFile(std::string);
+	std::vector<std::pair<double, double>> readGPSFromDzg();
 
 	Profile() {}
 	Profile(Profile&);
@@ -99,7 +100,6 @@ private:
 	void detectMarks(float*); 
 	std::vector<size_t> readMarksFromDzx(std::string);
 	std::pair<size_t, size_t> timeRangeToIndexes(float, float);
-	void readGPSFromDzg(std::string);
 	template<class T>
 	void read_rd37()
 	{

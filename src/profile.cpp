@@ -368,7 +368,6 @@ void Profile::open_gssi(std::string name)
 		data = read_typed_data<int32_t>(in, sz, moveOff);
 	traces = sz/samples;
 
-	readGPSFromDzg(name);
 	readMarks(in, channel, offset, &hdr);
 	if(!marks.size())
 	{
@@ -526,11 +525,13 @@ void Profile::readMarks(std::ifstream &in, int channel, size_t offset, tagRFHead
 }
 
 
-void Profile::readGPSFromDzg(std::string name)
+std::vector<std::pair<double, double>> Profile::readGPSFromDzg()
 {
+	std::string name = split_filename(path).first;
 	std::ifstream inDzg = open_both_cases(name, ".DZG"); 
+	std::vector<std::pair<double, double>> ret;
 	if(!inDzg)
-		return;
+		return ret;
 
 	std::string line;
 	while(std::getline(inDzg, line))
@@ -538,27 +539,20 @@ void Profile::readGPSFromDzg(std::string name)
 		nmea::sentence nmea_sentence(line);
 		if(nmea_sentence.type() == "GGA")
 		{
-			// Parse GGA message from NMEA sentence.
 			nmea::gga gga(nmea_sentence);
+			//std::cout << "UTC: " << std::fixed << std::setprecision(2) << gga.utc.get() << std::endl;
 
-			// Print UTC time of day (seconds since 12:00AM UTC).
-			std::cout << "UTC: " << std::fixed << std::setprecision(2) << gga.utc.get() << std::endl;
-
-			// Check if latitude is provided in the message.
-			if(gga.latitude.exists())
+			if(gga.latitude.exists() && gga.longitude.exists())
 			{
-				// Print latitude.
-				std::cout << "Latitude: " << std::fixed << std::setprecision(6) << gga.latitude.get() << std::endl;
+				//std::cout << "Latitude: " << std::fixed << std::setprecision(6) << gga.latitude.get() << std::endl;
+				//std::cout << "Longitude: " << std::fixed << std::setprecision(6) << gga.longitude.get() << std::endl;
+				ret.push_back(std::make_pair(gga.latitude.get(), gga.longitude.get()));
 			}
 
-			// Check if longitude is provided in the message.
-			if(gga.longitude.exists())
-			{
-				// Print longitude.
-				std::cout << "Longitude: " << std::fixed << std::setprecision(6) << gga.longitude.get() << std::endl;
-			}
 		}
 	}
+
+	return ret;
 }
 
 void Profile::detectMarks(float *dt)
@@ -979,7 +973,7 @@ std::shared_ptr<Profile> Profile::xFlip()
 	{
 		for(size_t j=0; j<samples; j++)
 			filtered[(traces-1-i)*samples+j] = data[(i)*samples+j];
-		if(!i)
+		if(!i) // TODO: <- ???
 			break;
 	}
 	return std::make_shared<Profile>(this, filtered);
