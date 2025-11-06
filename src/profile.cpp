@@ -213,12 +213,12 @@ std::pair<QVector<double>, QVector<double>> Profile::prepareWiggleData(size_t n,
 	return std::make_pair(x, y);
 }
 
-QCustomPlot* Profile::createWiggle(size_t n, char type)
+QCustomPlot* Profile::createWiggle(size_t n, char type, QWidget *parent)
 {
 	if(!init)
 		return nullptr;
 
-	QCustomPlot *wigglePlot = new QCustomPlot();
+	QCustomPlot *wigglePlot = new QCustomPlot(parent);
 	auto wiggleData = prepareWiggleData(n, type);
 
 	wigglePlot->addGraph();
@@ -386,14 +386,17 @@ void Profile::open_gssi(std::string name)
 			}
 		}
 	}
-	size_t zero;
+	size_t zero = 0;
 	if(channel == 1)
-		zero = hdr.rh_zero ? hdr.rh_zero : 2;
-	else
-		zero = hdr.rh_zero ? hdr.rh_zero : 0;
+		zero = hdr.rh_zero > 2 ? hdr.rh_zero : 2;
 
 	if(zero >= samples)
-		zero = 0;
+	{
+		if(samples <= 2) // im assuming such situtation doesnt make much sense
+			throw std::runtime_error("Invalid dzt");
+		zero = 2;
+	}
+
 	if(zero)
 	{
 		float *buf = (float*) fftwf_malloc(sizeof(float)*traces*(samples-zero));
@@ -537,7 +540,7 @@ std::vector<std::pair<double, double>> Profile::readGPSFromDzg()
 	while(std::getline(inDzg, line))
 	{
 		nmea::sentence nmea_sentence(line);
-		if(nmea_sentence.type() == "GGA")
+		if(nmea_sentence.type() == "GGA" || nmea_sentence.type() == "RMC")
 		{
 			nmea::gga gga(nmea_sentence);
 			//std::cout << "UTC: " << std::fixed << std::setprecision(2) << gga.utc.get() << std::endl;

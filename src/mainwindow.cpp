@@ -179,7 +179,7 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 		docker->wiggle = widget;
 	}
 	auto profile = docker->processingSteps[procStepsCombo->currentText()];
-	auto wiggle = profile->createWiggle(n, docker->wiggleType);
+	auto wiggle = profile->createWiggle(n, docker->wiggleType, docker);
 	if(docker->wiggleType == 0)
 		currentButton->setChecked(true);
 	else if(docker->wiggleType == 1)
