@@ -34,7 +34,6 @@ float mean(float *start, float *end)
 	return ret/n;
 }
 
-
 file_pair split_filename(std::string fname)
 {
 	size_t dot_pos = fname.find_last_of('.');
@@ -1089,6 +1088,12 @@ std::shared_ptr<Profile> Profile::butterworthFilter(float lowCut, float highCut,
 	{
 		iirfilt_rrrf filter = iirfilt_rrrf_create_prototype(LIQUID_IIRDES_BUTTER, LIQUID_IIRDES_BANDPASS, LIQUID_IIRDES_SOS,
 				4, normLow, center, ripple, att);
+		if(!filter)
+		{
+			fftwf_free(filtered);
+			return std::shared_ptr<Profile>{};
+		}
+
 		for(size_t j=0; j<samples; j++)
 			iirfilt_rrrf_execute(filter, data[i*samples+j], &filtered[i*samples+j]);
 		iirfilt_rrrf_destroy(filter);

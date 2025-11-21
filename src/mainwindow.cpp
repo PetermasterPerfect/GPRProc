@@ -261,8 +261,7 @@ void MainWindow::createActions()
     connect(openAct, &QAction::triggered, this, &MainWindow::onOpenFile);
 
 
-    loadMarksAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentPrint),
-                           tr("&Load marks..."), this);
+    loadMarksAct = new QAction(tr("&Load marks..."), this);
     loadMarksAct->setStatusTip(tr("Load the user marks"));
     connect(loadMarksAct, &QAction::triggered, this, &MainWindow::loadUserMarks);
 
@@ -411,7 +410,7 @@ void MainWindow::showProceduresDialog()
 		return;
     ProceduresDialog *options = new ProceduresDialog(mainTab->tabWidget, this);
     options->setAttribute(Qt::WA_DeleteOnClose);
-    options->show(); 
+    options->exec(); 
 }
 
 void MainWindow::showProcStepsDialog()
