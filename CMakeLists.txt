@@ -3,6 +3,14 @@ add_compile_options(-g -fsanitize=address)
 add_link_options(-fsanitize=address)
 project(GPRProc LANGUAGES CXX)
 
+if(CMAKE_SYSTEM_NAME EQUAL "Windows")
+	include_directories("${BOOST_INCLUDE}")
+	include_directories("${FFTW3F_INCLUDE_DIR}")
+else()
+	set(FFTW3F_LIBRARY "fftw3f")
+endif()
+
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets PrintSupport QuickWidgets Location Positioning)
 
 set(CMAKE_AUTORCC ON)
@@ -42,7 +50,7 @@ target_link_libraries(GPRProc PRIVATE
 	Qt6::Location Qt6::Positioning
 	Qt6::QuickWidgets
 	qtadvanceddocking
-	fftw3f
+	"${FFTW3F_LIBRARY}"
 	liquid
 	nmea
 )
@@ -59,3 +67,11 @@ qt_generate_deploy_app_script(
     NO_UNSUPPORTED_PLATFORM_ERROR
 )
 install(SCRIPT ${deploy_script})
+
+if(CMAKE_SYSTEM_NAME EQUAL "Windows")
+	install(FILES
+		FFTW3F_LIBRARY
+		"${CMAKE_BINARY_DIR}/libliquid.dll"
+		DESTINATION ${CMAKE_INSTALL_BINDIR}
+	)
+endif()
