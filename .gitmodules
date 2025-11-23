@@ -6,4 +6,4 @@
 	url = https://github.com/jgaeddert/liquid-dsp.git
 [submodule "thirdparty/nmea"]
 	path = thirdparty/nmea
-	url = https://github.com/pcdangio/nmea.git
+	url = https://github.com/PetermasterPerfect/nmea
