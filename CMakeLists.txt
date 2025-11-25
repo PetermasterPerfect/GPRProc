@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
+add_compile_options(-g)
 project(GPRProc LANGUAGES CXX)
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")

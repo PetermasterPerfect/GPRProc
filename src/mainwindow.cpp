@@ -7,14 +7,11 @@ MainWindow::MainWindow(char *fname)
 {
 	arg = fname;
 	mainTab = new TabbedWorkspaceWidget("main", this, nullptr);
-
-	//connect(tabWidget, &QTabWidget::tabCloseRequested,
-    //    this, &MainWindow::closeTab);
     createActions();
     createMenus();
 	createToolbar();
 
-    setWindowTitle(tr("Menus"));
+    setWindowTitle(tr("GPRProc"));
     setMinimumSize(160, 160);
     resize(880, 520);
 	

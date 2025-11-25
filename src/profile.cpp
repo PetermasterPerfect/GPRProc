@@ -779,7 +779,7 @@ void Profile::read_rad(std::string name)
 		}
 		else if(key == "TIMEWINDOW")
 		{
-			timeWindow = std::stod(value)*1000;
+			timeWindow = std::stod(value);
 			if(timeWindow <= 0)
 			{
 				in.close();
