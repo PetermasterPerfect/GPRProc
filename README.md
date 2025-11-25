@@ -7,7 +7,9 @@ GPRProc is a C++ application for visualizing and processing Ground Penetrating R
 Below are example screenshots of the application interface:
 
 ![Screenshot 1](images/img1.png)
+---
 ![Screenshot 2](images/img2.png)
+---
 ![Screenshot 3](images/img3.png)
 
 ---
