@@ -538,19 +538,30 @@ std::vector<std::pair<double, double>> Profile::readGPSFromDzg()
 	std::string line;
 	while(std::getline(inDzg, line))
 	{
-		nmea::sentence nmea_sentence(line);
-		if(nmea_sentence.type() == "GGA" || nmea_sentence.type() == "RMC")
+		try
 		{
-			nmea::gga gga(nmea_sentence);
-			//std::cout << "UTC: " << std::fixed << std::setprecision(2) << gga.utc.get() << std::endl;
-
-			if(gga.latitude.exists() && gga.longitude.exists())
+			nmea::sentence nmea_sentence(line);
+			if(nmea_sentence.type() == "GGA" || nmea_sentence.type() == "RMC")
 			{
-				//std::cout << "Latitude: " << std::fixed << std::setprecision(6) << gga.latitude.get() << std::endl;
-				//std::cout << "Longitude: " << std::fixed << std::setprecision(6) << gga.longitude.get() << std::endl;
-				ret.push_back(std::make_pair(gga.latitude.get(), gga.longitude.get()));
-			}
+				nmea::gga gga(nmea_sentence);
+				//std::cout << "UTC: " << std::fixed << std::setprecision(2) << gga.utc.get() << std::endl;
 
+				if(gga.latitude.exists() && gga.longitude.exists())
+				{
+					//std::cout << "Latitude: " << std::fixed << std::setprecision(6) << gga.latitude.get() << std::endl;
+					//std::cout << "Longitude: " << std::fixed << std::setprecision(6) << gga.longitude.get() << std::endl;
+					ret.push_back(std::make_pair(gga.latitude.get(), gga.longitude.get()));
+				}
+
+			}
+		}
+		catch (const std::invalid_argument& ex)
+		{
+			std::cerr << "Invalid argument in nmea sentence \n";
+		}
+		catch (const std::out_of_range& ex)
+		{
+			std::cerr << "Out of range in nmea sentence \n";
 		}
 	}
 

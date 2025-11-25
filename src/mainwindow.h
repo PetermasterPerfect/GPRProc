@@ -66,7 +66,6 @@ private:
 
 	TabbedWorkspaceWidget *mainTab;
     QMenu *fileMenu;
-	QMenu *editMenu;
     QMenu *viewMenu;
     QMenu *processingMenu;
 	QToolBar* toolBar;
@@ -84,6 +83,7 @@ private:
 	QAction *procStepsAct;
 	QComboBox *colormapCombo;
 	QDoubleSpinBox *scaleSpinBox;
+	char *arg;
 
 
 	std::unordered_map<QString, QCPColorGradient::GradientPreset> gradientMap = {

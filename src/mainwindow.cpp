@@ -5,6 +5,7 @@
 
 MainWindow::MainWindow(char *fname)
 {
+	arg = fname;
 	mainTab = new TabbedWorkspaceWidget("main", this, nullptr);
 
 	//connect(tabWidget, &QTabWidget::tabCloseRequested,
@@ -271,18 +272,6 @@ void MainWindow::createActions()
     exitAct->setStatusTip(tr("Exit the application"));
     connect(exitAct, &QAction::triggered, this, &QWidget::close);
 
-    undoAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditUndo),
-                          tr("&Undo"), this);
-    undoAct->setShortcuts(QKeySequence::Undo);
-    undoAct->setStatusTip(tr("Undo the last operation"));
-    connect(undoAct, &QAction::triggered, this, &MainWindow::undo);
-
-    redoAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditRedo),
-                          tr("&Redo"), this);
-    redoAct->setShortcuts(QKeySequence::Redo);
-    redoAct->setStatusTip(tr("Redo the last operation"));
-    connect(redoAct, &QAction::triggered, this, &MainWindow::redo);
-
     wiggleViewAct = new QAction(tr("&Wiggle view"), this);
     wiggleViewAct->setStatusTip(tr("Wiggle view of trace"));
 	wiggleViewAct->setCheckable(true);
@@ -323,11 +312,6 @@ void MainWindow::createMenus()
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
 
-    editMenu = menuBar()->addMenu(tr("&Edit"));
-    editMenu->addAction(undoAct);
-    editMenu->addAction(redoAct);
-    editMenu->addSeparator();
-    
 	viewMenu = menuBar()->addMenu(tr("&View"));
 	viewMenu->addAction(wiggleViewAct);
 	viewMenu->addAction(traceNormalizationAct);
@@ -424,7 +408,7 @@ void MainWindow::showProcStepsDialog()
 
 void MainWindow::onOpenFile()
 {
-	auto filename = QFileDialog::getOpenFileName(this, tr("Open Image"), "/home/zxcv/geofiz");
+	auto filename = QFileDialog::getOpenFileName(this, tr("Open Image"), arg);
 
 	if(!filename.length())
 		return;
