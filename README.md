@@ -2,7 +2,7 @@
 
 GPRProc is a C++ application for visualizing and processing Ground Penetrating Radar (GPR) data. The program supports multiple file formats, allows simultaneous operation on several datasets, and provides a range of built‑in signal‑processing tools.
 
-## 📸 Program Preview
+## Program Preview
 
 Below are example screenshots of the application interface:
 
@@ -14,7 +14,7 @@ Below are example screenshots of the application interface:
 
 ---
 
-## 📂 Supported File Formats
+## Supported File Formats
 
 GPRProc can load and visualize data from the following GPR systems:
 
@@ -27,7 +27,7 @@ GPRProc can load and visualize data from the following GPR systems:
 
 ---
 
-## ⚙️ Features
+## Features
 
 ### **Simultaneous multi‑file handling**
 
@@ -43,7 +43,7 @@ You can load multiple GPR profiles at once and work on them in parallel.
 
 ---
 
-## 🛠️ Dependencies
+## Dependencies
 
 ### **Required (installed separately):**
 
@@ -99,7 +99,7 @@ make -j32
 make install
 ```
 
-### ⚠️ Note
+### Note
 
 During Windows builds, you may encounter popup errors related to:
 
