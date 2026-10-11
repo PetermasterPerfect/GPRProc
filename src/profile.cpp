@@ -199,9 +199,16 @@ std::pair<QVector<double>, QVector<double>> Profile::prepareWiggleData(size_t n,
 		{
 			x[i] = (double)i*fs()/samples;
 			if(type == 1)
-				y[i] = sqrt(pow(fourier[i][0], 2) + pow(fourier[i][1], 2));
+				y[i] = sqrt(pow(fourier[i][0], 2) + pow(fourier[i][1], 2))*2/samples;//256;
 			else
 				y[i] = atan2(fourier[i][1], fourier[i][0]);
+			
+		}
+
+		if(type == 1)
+		{
+			x.erase(x.begin());
+			y.erase(y.begin());
 		}
 		fftwf_destroy_plan(p);
 		fftwf_free(fourier);
@@ -225,7 +232,7 @@ QCustomPlot* Profile::createWiggle(size_t n, char type, QWidget *parent)
 	wigglePlot->xAxis->setLabel("x");
 	wigglePlot->yAxis->setLabel("y");
 
-	if(type == 0)
+	if(type == 0 || type == 1)
 	{
 		QCPGraph *marker = wigglePlot->addGraph();
 		marker->addData(picks[n], data[n*samples+picks[n]]);
@@ -242,6 +249,9 @@ QCustomPlot* Profile::createWiggle(size_t n, char type, QWidget *parent)
 		wigglePlot->graph(1)->rescaleAxes(true);
 	}
 	wigglePlot->graph(0)->rescaleAxes();
+	if(type != 0)
+		wigglePlot->xAxis->setRange(wiggleData.first[0], fs()/2);
+	//	wigglePlot->xAxis->setRangeLower(wiggleData.first[1]);
 	wigglePlot->replot();
 	return wigglePlot;
 }
@@ -786,7 +796,35 @@ void Profile::read_rad(std::string name)
 				throw std::invalid_argument("Bad header info");
 			}
 		}
+		else if(key == "FREQUENCY")
+		{
+			frequency = std::stod(value);
+			if(frequency <= 0)
+			{
+				in.close();
+				throw std::invalid_argument("Bad header info");
+			}
+		}
 	}
+
+	if(timeWindow == std::numeric_limits<float>::quiet_NaN() || frequency == std::numeric_limits<double>::quiet_NaN())
+		throw std::invalid_argument("Bad header info");
+	else
+	{
+		float expectedNs = samples / frequency * 1000.0;
+		float eps = 0.001;
+
+		if (fabs(timeWindow-expectedNs) <= eps)
+		{
+		}
+		else if (fabs(timeWindow*1000.0-expectedNs) <= eps)
+			timeWindow *= 1000;
+		else
+			throw std::invalid_argument("Bad header info");
+
+	}
+
+
 	in.close();
 }
 
@@ -991,9 +1029,10 @@ std::shared_ptr<Profile> Profile::xFlip()
 	}
 	return std::make_shared<Profile>(this, filtered);
 }
-
+#include <chrono>
 std::shared_ptr<Profile> Profile::yFlip()
 {
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
 
 	for(size_t i=0; i<traces; i++)
@@ -1003,6 +1042,8 @@ std::shared_ptr<Profile> Profile::yFlip()
 			if(!j)
 				break;
 		}
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	std::cout << "yFlip time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
 	return std::make_shared<Profile>(this, filtered);
 }
 
@@ -1081,7 +1122,7 @@ std::shared_ptr<Profile> Profile::moveStartTime(float t)
 }
 
 
-std::shared_ptr<Profile> Profile::butterworthFilter(float lowCut, float highCut, float att, float ripple)
+std::shared_ptr<Profile> Profile::butterworthFilter(float lowCut, float highCut)
 {
 	if(lowCut >= highCut)
 		return std::shared_ptr<Profile>{};
@@ -1090,11 +1131,8 @@ std::shared_ptr<Profile> Profile::butterworthFilter(float lowCut, float highCut,
 	float normLow = lowCut*1e+6/(fs());
 	float normHigh = highCut*1e+6/(fs());
 	float center = normLow+(normHigh-normLow)/2;
-
-    unsigned int N = 4;
-    float As = 60.0f;       // stopband attenuation [dB]
-    float Ap = 1.0f;        // passband ripple [dB]
-
+	float att = 1;
+	float ripple = 1;
 	for(size_t i=0; i<traces; i++)
 	{
 		iirfilt_rrrf filter = iirfilt_rrrf_create_prototype(LIQUID_IIRDES_BUTTER, LIQUID_IIRDES_BANDPASS, LIQUID_IIRDES_SOS,

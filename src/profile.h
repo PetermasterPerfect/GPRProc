@@ -11,6 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <utility>
 #include <map>
+#include <limits>
 #include <fftw3.h>
 #include <QWidget>
 #include <QMainWindow>
@@ -38,7 +39,8 @@ struct Profile
 	std::string path;
 	size_t samples;
 	size_t traces;
-	float timeWindow;
+	float frequency = std::numeric_limits<double>::quiet_NaN();
+	float timeWindow =  std::numeric_limits<double>::quiet_NaN();
 	float *data = nullptr;
 	float *timeDomain = nullptr;
 	size_t *picks = nullptr;
@@ -47,8 +49,8 @@ struct Profile
 
 	const inline double fs()
 	{
-		double T = timeWindow*1e-9;
-		return samples/T;  
+		double T = timeWindow;
+		return samples*1e+9/T;  
 	}
 
 	std::pair<QVector<double>, QVector<double>> prepareWiggleData(size_t, char);
@@ -62,11 +64,11 @@ struct Profile
 	std::shared_ptr<Profile> yFlip();
 	std::shared_ptr<Profile> timeCut(float);
 	std::shared_ptr<Profile> moveStartTime(float);
-	std::shared_ptr<Profile> butterworthFilter(float, float, float, float);
+	std::shared_ptr<Profile> butterworthFilter(float, float);
 	// TODO: think about changing size_t argument to int 
 	//  QSpinBox return integer value 
 	std::shared_ptr<Profile> agc(size_t);
-	std::shared_ptr<Profile> backgroundRemoval(float, float, size_t, size_t, char );
+	std::shared_ptr<Profile> backgroundRemoval(float, float, size_t, size_t, char);
 	std::shared_ptr<Profile> horizontalScale(int, char);
 
 

@@ -6,7 +6,7 @@
 MainWindow::MainWindow(char *fname)
 {
 	arg = fname;
-	mainTab = new TabbedWorkspaceWidget("main", this, nullptr);
+	mainTab = new TabbedWorkspaceWidget("main", this, this);
     createActions();
     createMenus();
 	createToolbar();
@@ -144,9 +144,9 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 	QHBoxLayout *layout = new QHBoxLayout(container);
 	QVBoxLayout *optionsLayout = new QVBoxLayout(optionsContainer);
 	QSpinBox *spinBox = new QSpinBox(this);
-	QRadioButton *currentButton = new QRadioButton("current", this);
-	QRadioButton *amplitudeButton = new QRadioButton("amplitude", this);
-	QRadioButton *phaseButton = new QRadioButton("phase", this);
+	QRadioButton *currentButton = new QRadioButton("current trace", this);
+	QRadioButton *amplitudeButton = new QRadioButton("freq ampl spectr", this);
+	QRadioButton *phaseButton = new QRadioButton("freq phase spectr", this);
 	ads::CDockWidget *widget;
 	if(docker->wiggle)
 	{
@@ -157,15 +157,29 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 			plot->clearItems();
 
 			auto profile = docker->processingSteps[procStepsCombo->currentText()];
+			std::cout << "Profile: " << procStepsCombo->currentText() << "\n";
 			auto wiggleData = profile->prepareWiggleData(n, docker->wiggleType);
 			plot->graph(0)->setData(wiggleData.first, wiggleData.second);
 			plot->removeGraph(1);
-			QCPGraph *marker = plot->addGraph();
-			marker->addData(profile->picks[n], profile->data[n*profile->samples+profile->picks[n]]);
+			if(docker->wiggleType == 0)
+			{
+				QCPGraph *marker = plot->addGraph();
+				marker->addData(profile->picks[n], profile->data[n*profile->samples+profile->picks[n]]);
 
-			marker->setLineStyle(QCPGraph::lsNone);
-			marker->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 10));
-			marker->setPen(QPen(Qt::red));
+				marker->setLineStyle(QCPGraph::lsNone);
+				marker->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 10));
+				marker->setPen(QPen(Qt::red));
+			}
+			/*if(docker->wiggleType == 1)
+			{
+				QCPGraph *marker = plot->addGraph();
+
+				marker->addData(wiggleData.first[profile->samples/8], wiggleData.second[profile->samples/8]);
+
+				marker->setLineStyle(QCPGraph::lsNone);
+				marker->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 10));
+				marker->setPen(QPen(Qt::red));
+			}*/
 			plot->rescaleAxes();
 			plot->replot();
 			return;
@@ -236,6 +250,7 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 	connect(procStepsCombo, &MyQComboBox::activated, this, [=](int idx) {
 			if(idx == -1)
 				return;
+			std::cout << "ComboBox change\n";
 			setUpWiggle(docker, spinBox->value()-1, idx);
 			});
 	connect(procStepsCombo, &MyQComboBox::signalPopupShown, this, [=]() {
