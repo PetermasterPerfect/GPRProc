@@ -1,6 +1,7 @@
 from procdialoghdr import *
 from procdialogsrc import *
 from collections import namedtuple
+#  ctags --pattern-length-limit=0 -R 
 
 class In():
     n = 0
@@ -149,10 +150,8 @@ if __name__ == "__main__":
 
     butterworth = Procedur("Butterworth filter", 'butterworthFilter', 'butterworthFilter')
     butterworth.inputs = [
-            In('QDoubleSpinBox','Low cutoff (MHz): ', value='0', rang3='0, profile->fs()/2-1', decimals='3', single_step='1'),
-            In('QDoubleSpinBox','High cutoff (MHz): ', value='profile->fs()/1e+6/2-1', rang3='0, profile->fs()/2-1', decimals='3', single_step='1'),
-            In('QDoubleSpinBox', 'Stopband attenuation [dB]: ', value='1', single_step='0.1', rang3='1, 1000'),
-            In('QDoubleSpinBox', 'Passband ripple [dB]: ', value='1', single_step='0.1', rang3='1, 1000')]
+            In('QDoubleSpinBox','Low cutoff (MHz): ', value='0', rang3='0, profile->fs()/1e+6/2-1', decimals='3', single_step='1'),
+            In('QDoubleSpinBox','High cutoff (MHz): ', value='profile->fs()/1e+6/2-1', rang3='0, profile->fs()/1e+6/2-1', decimals='3', single_step='1')]
 
 
     agc = Procedur("Automatic gain control (AGC)", 'agc', 'agc')

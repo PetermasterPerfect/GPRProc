@@ -13,25 +13,25 @@ ProceduresDialog::ProceduresDialog(QTabWidget *tab, QWidget *parent)
 	if (!docker)
 		return;
 
-    QVBoxLayout *radioLayout = new QVBoxLayout(this);
+    QVBoxLayout *radioLayout = new QVBoxLayout;
 	for(int i=0; i<proceduresRadios.size(); i++)
 	{
-		proceduresRadios[i] = new QRadioButton(gProceduresNames[i], this);
+		proceduresRadios[i] = new QRadioButton(gProceduresNames[i]);
 		radioLayout->addWidget(proceduresRadios[i]);
 	}
 	proceduresRadios[0]->setChecked(true); //dc-shift radio button
 	
-    QWidget *radioWidget = new QWidget(this);
+    QWidget *radioWidget = new QWidget;
     radioWidget->setLayout(radioLayout);
 
-	procStepsCombo = new MyQComboBox(this);
+	procStepsCombo = new MyQComboBox;
 	int i=0;
 	for(auto &it : docker->processingSteps)
 		procStepsCombo->insertItem(i++, it.first);
 	
 	setupStackedOptions();
 
-	auto lineA = new QFrame(this);
+	auto lineA = new QFrame;
 	lineA->setFrameShape(QFrame::HLine);
 	lineA->setFrameShadow(QFrame::Sunken);
 
@@ -379,7 +379,7 @@ auto hLayout1_1 = new QHBoxLayout;
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t1, float t2)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input0->value(), input1->value());
             if(!proccessedProf)
@@ -389,7 +389,7 @@ auto hLayout1_1 = new QHBoxLayout;
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t1, float t2)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input0->value(), input1->value());
             if(!proccessedProf)
@@ -451,7 +451,7 @@ input2->setDecimals(3);
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t1)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input2->value());
             if(!proccessedProf)
@@ -461,7 +461,7 @@ input2->setDecimals(3);
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t1)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input2->value());
             if(!proccessedProf)
@@ -551,7 +551,7 @@ auto hLayout1_3 = new QHBoxLayout;
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float, float, float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t1, float t2, float exponent, float maxVal)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input3->value(), input4->value(), input5->value(), input6->value());
             if(!proccessedProf)
@@ -561,7 +561,7 @@ auto hLayout1_3 = new QHBoxLayout;
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float, float, float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t1, float t2, float exponent, float maxVal)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input3->value(), input4->value(), input5->value(), input6->value());
             if(!proccessedProf)
@@ -637,7 +637,7 @@ auto hLayout1_1 = new QHBoxLayout;
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float )>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float amplMin, float amplMax)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input7->value(), input8->value());
             if(!proccessedProf)
@@ -647,7 +647,7 @@ auto hLayout1_1 = new QHBoxLayout;
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float )>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float amplMin, float amplMax)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input7->value(), input8->value());
             if(!proccessedProf)
@@ -835,7 +835,7 @@ input9->setDecimals(3);
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input9->value());
             if(!proccessedProf)
@@ -845,7 +845,7 @@ input9->setDecimals(3);
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input9->value());
             if(!proccessedProf)
@@ -907,7 +907,7 @@ input10->setDecimals(3);
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input10->value());
             if(!proccessedProf)
@@ -917,7 +917,7 @@ input10->setDecimals(3);
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input10->value());
             if(!proccessedProf)
@@ -949,26 +949,16 @@ QWidget* ProceduresDialog::createButterworthfilter()
     page->setLayout(layout);
     
     auto input11 = new QDoubleSpinBox;
-input11->setRange(0, profile->fs()/2-1);
+input11->setRange(0, profile->fs()/1e+6/2-1);
 input11->setValue(0);
 input11->setSingleStep(1);
 input11->setDecimals(3);
 	
 auto input12 = new QDoubleSpinBox;
-input12->setRange(0, profile->fs()/2-1);
+input12->setRange(0, profile->fs()/1e+6/2-1);
 input12->setValue(profile->fs()/1e+6/2-1);
 input12->setSingleStep(1);
 input12->setDecimals(3);
-	
-auto input13 = new QDoubleSpinBox;
-input13->setRange(1, 1000);
-input13->setValue(1);
-input13->setSingleStep(0.1);
-	
-auto input14 = new QDoubleSpinBox;
-input14->setRange(1, 1000);
-input14->setValue(1);
-input14->setSingleStep(0.1);
 //inputs
     auto hLayout1_0 = new QHBoxLayout;
     hLayout1_0->addWidget(new QLabel("Low cutoff (MHz): "));
@@ -978,14 +968,6 @@ auto hLayout1_1 = new QHBoxLayout;
     hLayout1_1->addWidget(new QLabel("High cutoff (MHz): "));
     hLayout1_1->addWidget(input12);
     layout->addLayout(hLayout1_1);
-auto hLayout1_2 = new QHBoxLayout;
-    hLayout1_2->addWidget(new QLabel("Stopband attenuation [dB]: "));
-    hLayout1_2->addWidget(input13);
-    layout->addLayout(hLayout1_2);
-auto hLayout1_3 = new QHBoxLayout;
-    hLayout1_3->addWidget(new QLabel("Passband ripple [dB]: "));
-    hLayout1_3->addWidget(input14);
-    layout->addLayout(hLayout1_3);
 
 
     auto hLayout2 = new QHBoxLayout;
@@ -1007,9 +989,9 @@ auto hLayout1_3 = new QHBoxLayout;
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float, float, float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float lowCut, float highCut)>(procedur);
             auto profile = getCurrentProcessing();
-            auto proccessedProf = (profile.get()->*procFunc)(input11->value(), input12->value(), input13->value(), input14->value());
+            auto proccessedProf = (profile.get()->*procFunc)(input11->value(), input12->value());
             if(!proccessedProf)
                 return;
             apply(docker, proccessedProf, getProcessingName(docker, procName));
@@ -1017,9 +999,9 @@ auto hLayout1_3 = new QHBoxLayout;
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float, float, float)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float lowCut, float highCut)>(procedur);
             auto profile = getCurrentProcessing();
-            auto proccessedProf = (profile.get()->*procFunc)(input11->value(), input12->value(), input13->value(), input14->value());
+            auto proccessedProf = (profile.get()->*procFunc)(input11->value(), input12->value());
             if(!proccessedProf)
                 return;
             applyProc(docker, proccessedProf, getProcessingName(docker, procName));
@@ -1048,14 +1030,14 @@ QWidget* ProceduresDialog::createAgc()
     layout->addWidget(new QLabel("Automatic gain control (AGC)"));
     page->setLayout(layout);
     
-    auto input15 = new QSpinBox;
-input15->setRange(1, profile->samples);
-input15->setValue(1);
-input15->setSingleStep(1);
+    auto input13 = new QSpinBox;
+input13->setRange(1, profile->samples);
+input13->setValue(1);
+input13->setSingleStep(1);
 //inputs
     auto hLayout1_0 = new QHBoxLayout;
     hLayout1_0->addWidget(new QLabel("Window: "));
-    hLayout1_0->addWidget(input15);
+    hLayout1_0->addWidget(input13);
     layout->addLayout(hLayout1_0);
 
 
@@ -1078,9 +1060,9 @@ input15->setSingleStep(1);
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(size_t)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(size_t window)>(procedur);
             auto profile = getCurrentProcessing();
-            auto proccessedProf = (profile.get()->*procFunc)(input15->value());
+            auto proccessedProf = (profile.get()->*procFunc)(input13->value());
             if(!proccessedProf)
                 return;
             apply(docker, proccessedProf, getProcessingName(docker, procName));
@@ -1088,9 +1070,9 @@ input15->setSingleStep(1);
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(size_t)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(size_t window)>(procedur);
             auto profile = getCurrentProcessing();
-            auto proccessedProf = (profile.get()->*procFunc)(input15->value());
+            auto proccessedProf = (profile.get()->*procFunc)(input13->value());
             if(!proccessedProf)
                 return;
             applyProc(docker, proccessedProf, getProcessingName(docker, procName));
@@ -1119,53 +1101,53 @@ QWidget* ProceduresDialog::createBackgroundremoval()
     layout->addWidget(new QLabel("Background removal"));
     page->setLayout(layout);
     
-    auto input16 = new QDoubleSpinBox;
-input16->setRange(0, profile->timeWindow-profile->timeWindow/profile->samples);
+    auto input14 = new QDoubleSpinBox;
+input14->setRange(0, profile->timeWindow-profile->timeWindow/profile->samples);
+input14->setValue(0);
+input14->setSingleStep(0.001);
+input14->setDecimals(3);
+	
+auto input15 = new QDoubleSpinBox;
+input15->setRange(0, profile->timeWindow-profile->timeWindow/profile->samples);
+input15->setValue(profile->timeWindow-profile->timeWindow/profile->samples);
+input15->setSingleStep(0.001);
+input15->setDecimals(3);
+	
+auto input16 = new QDoubleSpinBox;
+input16->setRange(0, profile->traces-1);
 input16->setValue(0);
-input16->setSingleStep(0.001);
-input16->setDecimals(3);
+input16->setSingleStep(1);
 	
 auto input17 = new QDoubleSpinBox;
-input17->setRange(0, profile->timeWindow-profile->timeWindow/profile->samples);
-input17->setValue(profile->timeWindow-profile->timeWindow/profile->samples);
-input17->setSingleStep(0.001);
-input17->setDecimals(3);
+input17->setRange(0, profile->traces-1);
+input17->setValue(profile->traces-1);
+input17->setSingleStep(1);
 	
-auto input18 = new QDoubleSpinBox;
-input18->setRange(0, profile->traces-1);
-input18->setValue(0);
-input18->setSingleStep(1);
-	
-auto input19 = new QDoubleSpinBox;
-input19->setRange(0, profile->traces-1);
-input19->setValue(profile->traces-1);
-input19->setSingleStep(1);
-	
-auto input20 = new QComboBox;
-input20->insertItem(0, "Whole trace");
-input20->insertItem(1, "Part trace");
-input20->insertItem(2, "Mean inside");
-input20->insertItem(3, "All inside");
+auto input18 = new QComboBox;
+input18->insertItem(0, "Whole trace");
+input18->insertItem(1, "Part trace");
+input18->insertItem(2, "Mean inside");
+input18->insertItem(3, "All inside");
 //inputs
     auto hLayout1_0 = new QHBoxLayout;
     hLayout1_0->addWidget(new QLabel("Start time: "));
-    hLayout1_0->addWidget(input16);
+    hLayout1_0->addWidget(input14);
     layout->addLayout(hLayout1_0);
 auto hLayout1_1 = new QHBoxLayout;
     hLayout1_1->addWidget(new QLabel("End time: "));
-    hLayout1_1->addWidget(input17);
+    hLayout1_1->addWidget(input15);
     layout->addLayout(hLayout1_1);
 auto hLayout1_2 = new QHBoxLayout;
     hLayout1_2->addWidget(new QLabel("Start trace: "));
-    hLayout1_2->addWidget(input18);
+    hLayout1_2->addWidget(input16);
     layout->addLayout(hLayout1_2);
 auto hLayout1_3 = new QHBoxLayout;
     hLayout1_3->addWidget(new QLabel("End trace: "));
-    hLayout1_3->addWidget(input19);
+    hLayout1_3->addWidget(input17);
     layout->addLayout(hLayout1_3);
 auto hLayout1_4 = new QHBoxLayout;
     hLayout1_4->addWidget(new QLabel("Type: "));
-    hLayout1_4->addWidget(input20);
+    hLayout1_4->addWidget(input18);
     layout->addLayout(hLayout1_4);
 
 
@@ -1188,9 +1170,9 @@ auto hLayout1_4 = new QHBoxLayout;
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float, size_t, size_t, char )>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float startTime, float endTime, size_t startTrace, size_t endTrace, char type)>(procedur);
             auto profile = getCurrentProcessing();
-            auto proccessedProf = (profile.get()->*procFunc)(input16->value(), input17->value(), input18->value(), input19->value(), input20->currentIndex());
+            auto proccessedProf = (profile.get()->*procFunc)(input14->value(), input15->value(), input16->value(), input17->value(), input18->currentIndex());
             if(!proccessedProf)
                 return;
             apply(docker, proccessedProf, getProcessingName(docker, procName));
@@ -1198,9 +1180,9 @@ auto hLayout1_4 = new QHBoxLayout;
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float, float, size_t, size_t, char )>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float startTime, float endTime, size_t startTrace, size_t endTrace, char type)>(procedur);
             auto profile = getCurrentProcessing();
-            auto proccessedProf = (profile.get()->*procFunc)(input16->value(), input17->value(), input18->value(), input19->value(), input20->currentIndex());
+            auto proccessedProf = (profile.get()->*procFunc)(input14->value(), input15->value(), input16->value(), input17->value(), input18->currentIndex());
             if(!proccessedProf)
                 return;
             applyProc(docker, proccessedProf, getProcessingName(docker, procName));
@@ -1229,22 +1211,22 @@ QWidget* ProceduresDialog::createHorizontalscale()
     layout->addWidget(new QLabel("Horizontal scale"));
     page->setLayout(layout);
     
-    auto input21 = new QSpinBox;
-input21->setRange(1, profile->traces-1);
-input21->setValue(1);
-input21->setSingleStep(1);
+    auto input19 = new QSpinBox;
+input19->setRange(1, profile->traces-2);
+input19->setValue(1);
+input19->setSingleStep(1);
 	
-auto input22 = new QComboBox;
-input22->insertItem(0, "Stack");
-input22->insertItem(1, "Skip");
+auto input20 = new QComboBox;
+input20->insertItem(0, "Stack");
+input20->insertItem(1, "Skip");
 //inputs
     auto hLayout1_0 = new QHBoxLayout;
     hLayout1_0->addWidget(new QLabel("End trace: "));
-    hLayout1_0->addWidget(input21);
+    hLayout1_0->addWidget(input19);
     layout->addLayout(hLayout1_0);
 auto hLayout1_1 = new QHBoxLayout;
     hLayout1_1->addWidget(new QLabel("Type: "));
-    hLayout1_1->addWidget(input22);
+    hLayout1_1->addWidget(input20);
     layout->addLayout(hLayout1_1);
 
 
@@ -1267,9 +1249,9 @@ auto hLayout1_1 = new QHBoxLayout;
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(int, char)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(int n, char type)>(procedur);
             auto profile = getCurrentProcessing();
-            auto proccessedProf = (profile.get()->*procFunc)(input21->value(), input22->currentIndex());
+            auto proccessedProf = (profile.get()->*procFunc)(input19->value(), input20->currentIndex());
             if(!proccessedProf)
                 return;
             apply(docker, proccessedProf, getProcessingName(docker, procName));
@@ -1277,9 +1259,9 @@ auto hLayout1_1 = new QHBoxLayout;
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(int, char)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(int n, char type)>(procedur);
             auto profile = getCurrentProcessing();
-            auto proccessedProf = (profile.get()->*procFunc)(input21->value(), input22->currentIndex());
+            auto proccessedProf = (profile.get()->*procFunc)(input19->value(), input20->currentIndex());
             if(!proccessedProf)
                 return;
             applyProc(docker, proccessedProf, getProcessingName(docker, procName));

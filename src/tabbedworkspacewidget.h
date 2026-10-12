@@ -28,11 +28,7 @@ private:
 	const QString name;
 	QMainWindow* mainWindow;
 
-	//virtual void closeEvent(QCloseEvent* event) override;
-
 signals:
-  void created();
-  void undoableChange();
   void tabAdded(ads::CDockManager*);
 
 };
