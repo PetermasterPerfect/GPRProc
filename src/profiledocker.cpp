@@ -58,7 +58,7 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks)
 			else
 				profile = anonymousProc.second;
 
-			if(marks != profile->marksOn)
+			if(marks != profile->marksOn || (marks && profile->marksOn))
 			{
 				std::cout << "count: " << plot->axisRectCount() << "\n";
 				if(marks)

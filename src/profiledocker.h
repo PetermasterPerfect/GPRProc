@@ -34,7 +34,9 @@ public:
 	bool traceNormalization = false;
 	bool colorScale = false;
 	bool userMarks = false;
+	bool depthAxis = false;
 	float scale = 1;
+	float vel = 0.1;
 	QCPColorGradient::GradientPreset gradType = QCPColorGradient::gpGrayscale;
 	std::map<QCustomPlot*, QCPColorMap*> radargram2ColorMap;
 	std::map<QString, std::shared_ptr<Profile>> processingSteps;

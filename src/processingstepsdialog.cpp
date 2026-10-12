@@ -71,6 +71,8 @@ void ProcessingStepsDialog::addShowDeleteButtons(std::pair<QString, std::shared_
 		if(!widget)
 			return;
 		docker->addDockWidget(ads::BottomDockWidgetArea, widget);
+		if(docker->userMarks)
+			docker->replotMarks(true); // hacking docker to plot marks correctly
 
 		showButton->setFlat(false);
 			});
