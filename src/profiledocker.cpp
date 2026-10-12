@@ -20,25 +20,30 @@ ProfileDocker::~ProfileDocker()
 
 void ProfileDocker::replot()
 {
-	replot(scale, traceNormalization, userMarks);
+	replot(scale, traceNormalization, userMarks, depthAxis);
 }
 
 void ProfileDocker::replot(float sc)
 {
-	replot(sc, traceNormalization, userMarks);
+	replot(sc, traceNormalization, userMarks, depthAxis);
 }
 
 void ProfileDocker::replot(bool traceNorm)
 {
-	replot(scale, traceNorm, userMarks);
+	replot(scale, traceNorm, userMarks, depthAxis);
 }
 
 void ProfileDocker::replotMarks(bool marks)
 {
-	replot(scale, traceNormalization, marks);
+	replot(scale, traceNormalization, marks, depthAxis);
 }
 
-void ProfileDocker::replot(float sc, bool traceNorm, bool marks)
+void ProfileDocker::replotDepthAxis(bool depth)
+{
+	replot(scale, traceNormalization, userMarks, depth);
+}
+
+void ProfileDocker::replot(float sc, bool traceNorm, bool marks, bool depth)
 {
 	for(auto widget : dockWidgets())
 	{
@@ -57,6 +62,24 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks)
 				profile = processingSteps[widget->objectName()];
 			else
 				profile = anonymousProc.second;
+
+			if(depth != depthAxis || (depth && depthAxis))
+			{
+				if(depth)
+				{
+					plot->yAxis2->setVisible(true);
+					plot->yAxis2->setTickLabels(true);
+					plot->yAxis2->setLabel("v");
+					plot->yAxis2->setRangeReversed(true);
+					plot->yAxis2->setRange(0, vel*profile->timeWindow/2);
+				}
+				else
+				{
+					plot->yAxis2->setVisible(false);
+					plot->yAxis2->setTickLabels(false);
+				}
+				depthAxis = depth;
+			}
 
 			if(marks != profile->marksOn || (marks && profile->marksOn))
 			{

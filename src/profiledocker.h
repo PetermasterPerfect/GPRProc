@@ -45,8 +45,9 @@ public:
 	void replot();
 	void replot(float);
 	void replot(bool);
-	void replot(float, bool, bool);
+	void replot(float, bool, bool, bool);
 	void replotMarks(bool);
+	void replotDepthAxis(bool);
 	void removeColorMap(QCustomPlot*);
 	bool containsMarks();
 	bool isProfileVisible(std::shared_ptr<Profile>);

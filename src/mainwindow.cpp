@@ -21,6 +21,7 @@ MainWindow::MainWindow(char *fname)
 			colorScaleAct->setChecked(false);
 			userMarksAct->setChecked(false);
 			userMarksAct->setEnabled(false);
+			depthAxisAct->setChecked(false);
 			});
 
 	connect(mainTab->tabWidget, &QTabWidget::currentChanged, this, [=]() {
@@ -31,10 +32,14 @@ MainWindow::MainWindow(char *fname)
 			traceNormalizationAct->setChecked(docker->traceNormalization);
 			colorScaleAct->setChecked(docker->colorScale);
 			userMarksAct->setChecked(docker->userMarks);
+			depthAxisAct->setChecked(docker->depthAxis);
 			if(docker->containsMarks())
 				userMarksAct->setEnabled(true);
 			else
 				userMarksAct->setEnabled(false);
+
+			if(docker->depthAxis)
+				depthAxisAct->setChecked(true);
 
 			for(auto &color : gradientMap)
 				if(color.second == docker->gradType)
@@ -106,6 +111,15 @@ void MainWindow::userMarks()
 		return;
 
 	docker->replotMarks(docker->userMarks ^ true);
+}
+
+void MainWindow::depthAxis()
+{
+	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+	if(!docker)
+		return;
+
+	docker->replotDepthAxis(docker->depthAxis ^ true);
 }
 
 void MainWindow::wiggleView()
@@ -304,6 +318,11 @@ void MainWindow::createActions()
 	userMarksAct->setCheckable(true);
     connect(userMarksAct, &QAction::triggered, this, &MainWindow::userMarks);
 
+	depthAxisAct = new QAction(tr("&Depth axis"), this);
+    depthAxisAct->setStatusTip(tr("Show depth axis"));
+	depthAxisAct->setCheckable(true);
+    connect(depthAxisAct, &QAction::triggered, this, &MainWindow::depthAxis);
+
 	mapViewAct = new QAction(tr("&Map view"), this);
     mapViewAct->setStatusTip(tr("Open map view"));
     connect(mapViewAct, &QAction::triggered, this, &MainWindow::mapView);
@@ -328,6 +347,7 @@ void MainWindow::createMenus()
 	viewMenu->addAction(wiggleViewAct);
 	viewMenu->addAction(traceNormalizationAct);
 	viewMenu->addAction(colorScaleAct);
+	viewMenu->addAction(depthAxisAct);
 	viewMenu->addAction(userMarksAct);
 	viewMenu->addAction(mapViewAct);
 
@@ -372,13 +392,16 @@ void MainWindow::createToolbar()
 	velSpinBox->setValue(0.1);
 	velSpinBox->setSingleStep(0.05);
 	velSpinBox->setDecimals(3);
-	velSpinBox->setMinimum(0.000001);
+	velSpinBox->setMinimum(0.01);
 	toolBar->addWidget(velSpinBox);
 	connect(velSpinBox, &QDoubleSpinBox::valueChanged, this, [=](double val){
 			auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
 			if(!docker)
 				return;
-			// TODO: apply velocity value to the docker
+			docker->vel = val;
+			if(docker->depthAxis)
+				docker->replotDepthAxis(true);
+
 			});
 
 }

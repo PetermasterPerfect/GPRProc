@@ -51,6 +51,7 @@ public slots:
 	void traceNormalization();
 	void colorScale();
 	void userMarks();
+	void depthAxis();
 	void mapView();
 
 signals:
@@ -78,6 +79,7 @@ private:
 	QAction *traceNormalizationAct;
 	QAction *colorScaleAct;
 	QAction *userMarksAct;
+	QAction *depthAxisAct;
 	QAction *mapViewAct;
 	QAction *proceduresAct;
 	QAction *procStepsAct;
