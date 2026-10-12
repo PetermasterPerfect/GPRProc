@@ -83,6 +83,7 @@ private:
 	QAction *procStepsAct;
 	QComboBox *colormapCombo;
 	QDoubleSpinBox *scaleSpinBox;
+	QDoubleSpinBox *velSpinBox;
 	char *arg;
 
 

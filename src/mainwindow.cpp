@@ -157,7 +157,7 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 			plot->clearItems();
 
 			auto profile = docker->processingSteps[procStepsCombo->currentText()];
-			std::cout << "Profile: " << procStepsCombo->currentText() << "\n";
+			//std::cout << "Profile: " << procStepsCombo->currentText() << "\n";
 			auto wiggleData = profile->prepareWiggleData(n, docker->wiggleType);
 			plot->graph(0)->setData(wiggleData.first, wiggleData.second);
 			plot->removeGraph(1);
@@ -363,6 +363,22 @@ void MainWindow::createToolbar()
 			if(!docker)
 				return;
 			docker->replot(val);
+			});
+
+	toolBar->addSeparator();
+
+	toolBar->addWidget(new QLabel("v:", this));
+	velSpinBox = new QDoubleSpinBox(this);
+	velSpinBox->setValue(0.1);
+	velSpinBox->setSingleStep(0.05);
+	velSpinBox->setDecimals(3);
+	velSpinBox->setMinimum(0.000001);
+	toolBar->addWidget(velSpinBox);
+	connect(velSpinBox, &QDoubleSpinBox::valueChanged, this, [=](double val){
+			auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());
+			if(!docker)
+				return;
+			// TODO: apply velocity value to the docker
 			});
 
 }
