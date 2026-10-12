@@ -178,10 +178,13 @@ std::pair<QVector<double>, QVector<double>> Profile::prepareWiggleData(size_t n,
 	switch(type)
 	{
 	case 0: // trace
+		{
+		float sampTime = timeWindow/samples;
 		for (int i=0; i<samples; ++i)
 		{
-			x[i] = i;
+			x[i] = i*sampTime;
 			y[i] = data[n*samples+i];
+		}
 		}
 		break;
 	case 1: // amplitude
@@ -227,15 +230,18 @@ QCustomPlot* Profile::createWiggle(size_t n, char type, QWidget *parent)
 	QCustomPlot *wigglePlot = new QCustomPlot(parent);
 	auto wiggleData = prepareWiggleData(n, type);
 
-	wigglePlot->addGraph();
-	wigglePlot->graph(0)->setData(wiggleData.first, wiggleData.second);
-	wigglePlot->xAxis->setLabel("x");
-	wigglePlot->yAxis->setLabel("y");
+	QCPCurve *curve = new QCPCurve(wigglePlot->xAxis, wigglePlot->yAxis);
+	curve->setData(wiggleData.first, wiggleData.second, wiggleData.first);
+	curve->setData(wiggleData.first, wiggleData.second, wiggleData.first);
+
+	wigglePlot->xAxis->setLabel("y");
+	wigglePlot->yAxis->setLabel("x");
+	wigglePlot->yAxis->setRangeReversed(true);
 
 	if(type == 0 || type == 1)
 	{
 		QCPGraph *marker = wigglePlot->addGraph();
-		marker->addData(picks[n], data[n*samples+picks[n]]);
+		marker->addData(data[n*samples+picks[n]], picks[n]);
 		marker->setLineStyle(QCPGraph::lsNone);
 		marker->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 10));
 		marker->setPen(QPen(Qt::red));
@@ -245,13 +251,12 @@ QCustomPlot* Profile::createWiggle(size_t n, char type, QWidget *parent)
 		myScatter.setPen(QPen(Qt::blue));
 		myScatter.setBrush(Qt::white);
 		myScatter.setSize(5);
-		wigglePlot->graph(0)->setScatterStyle(myScatter);
-		wigglePlot->graph(1)->rescaleAxes(true);
+		curve->setScatterStyle(myScatter);
+		marker->rescaleAxes(true);
 	}
-	wigglePlot->graph(0)->rescaleAxes();
+	curve->rescaleAxes();
 	if(type != 0)
-		wigglePlot->xAxis->setRange(wiggleData.first[0], fs()/2);
-	//	wigglePlot->xAxis->setRangeLower(wiggleData.first[1]);
+		wigglePlot->yAxis->setRange(wiggleData.first[0], fs()/2);
 	wigglePlot->replot();
 	return wigglePlot;
 }

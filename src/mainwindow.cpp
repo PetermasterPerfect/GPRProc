@@ -155,7 +155,7 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 		procStepsCombo->insertItem(i++, it.first);
 	procStepsCombo->setCurrentIndex(idx);
 	
-	QHBoxLayout *layout = new QHBoxLayout(container);
+	QVBoxLayout *layout = new QVBoxLayout(container);
 	QVBoxLayout *optionsLayout = new QVBoxLayout(optionsContainer);
 	QSpinBox *spinBox = new QSpinBox(this);
 	QRadioButton *currentButton = new QRadioButton("current trace", this);
@@ -228,7 +228,7 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 	optionsLayout->addWidget(amplitudeButton);
 	optionsLayout->addWidget(phaseButton);
 	widget->setWidget(container);
-	docker->addDockWidget(ads::TopDockWidgetArea, widget);
+	docker->addDockWidget(ads::RightDockWidgetArea, widget);
 	connect(widget, &ads::CDockWidget::closed, docker, [=]() {
 			wiggleViewAct->setChecked(false);
 			docker->wiggle = nullptr;
@@ -264,7 +264,6 @@ void MainWindow::setUpWiggle(ProfileDocker *docker, size_t n, int idx)
 	connect(procStepsCombo, &MyQComboBox::activated, this, [=](int idx) {
 			if(idx == -1)
 				return;
-			std::cout << "ComboBox change\n";
 			setUpWiggle(docker, spinBox->value()-1, idx);
 			});
 	connect(procStepsCombo, &MyQComboBox::signalPopupShown, this, [=]() {
