@@ -229,10 +229,8 @@ QCustomPlot* Profile::createWiggle(size_t n, char type, QWidget *parent)
 
 	wigglePlot->addGraph();
 	wigglePlot->graph(0)->setData(wiggleData.first, wiggleData.second);
-	wigglePlot->xAxis->setLabel("x");
-	wigglePlot->yAxis->setLabel("y");
 
-	if(type == 0 || type == 1)
+	if(type == 0)
 	{
 		QCPGraph *marker = wigglePlot->addGraph();
 		marker->addData(picks[n], data[n*samples+picks[n]]);
@@ -247,10 +245,19 @@ QCustomPlot* Profile::createWiggle(size_t n, char type, QWidget *parent)
 		myScatter.setSize(5);
 		wigglePlot->graph(0)->setScatterStyle(myScatter);
 		wigglePlot->graph(1)->rescaleAxes(true);
+
+		wigglePlot->xAxis->setLabel("time [ns]");
+		wigglePlot->yAxis->setLabel("samples value");
 	}
-	wigglePlot->graph(0)->rescaleAxes();
-	if(type != 0)
+	else
+	{
 		wigglePlot->xAxis->setRange(wiggleData.first[0], fs()/2);
+		wigglePlot->xAxis->setLabel("frequency [Hz]");
+		wigglePlot->yAxis->setLabel("ampl");
+
+	}
+
+	wigglePlot->graph(0)->rescaleAxes();
 	//	wigglePlot->xAxis->setRangeLower(wiggleData.first[1]);
 	wigglePlot->replot();
 	return wigglePlot;
@@ -272,18 +279,18 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QW
 	imagePlot->axisRect()->setRangeDragAxes(imagePlot->xAxis2, imagePlot->yAxis);
 	imagePlot->axisRect()->setRangeZoomAxes(imagePlot->xAxis2, imagePlot->yAxis);
 
-	imagePlot->xAxis2->setLabel("x");
-	imagePlot->yAxis->setLabel("y");
+	imagePlot->xAxis2->setLabel("distance [m]");
+	imagePlot->yAxis->setLabel("time [ns]");
 	imagePlot->yAxis->setRangeReversed(true);
 	float sampTime = timeWindow/samples;
 	QCPRange *samplesRange = new QCPRange(0, timeWindow-sampTime ? timeWindow-sampTime : 1);
-	QCPRange *tracesRange = new QCPRange(0,  traces-1 ? traces-1 : 1);
+	QCPRange *tracesRange = new QCPRange(0,  xend() ? xend() : 1);
 	QCPColorGradient gradient;
 	gradient.loadPreset(gradType);
 	QCPColorMapData *mapData = new QCPColorMapData(traces, samples, *tracesRange, *samplesRange);
 	for(size_t i=0; i<traces; i++)
 		for(size_t j=0; j<samples; j++)
-			mapData->setData(i, j*sampTime, data[i*samples+j]*scale);
+			mapData->setData(i*distInterval, j*sampTime, data[i*samples+j]*scale);
 
 	QCPColorMap *map = new QCPColorMap(imagePlot->xAxis2, imagePlot->yAxis);
 	map->setData(mapData);
@@ -376,6 +383,10 @@ void Profile::open_gssi(std::string name)
 	else if(hdr.rh_bits == 32)
 		data = read_typed_data<int32_t>(in, sz, moveOff);
 	traces = sz/samples;
+	if(hdr.rhf_spm > 0)
+		distInterval = (traces-1)/hdr.rhf_spm/(traces-1);
+	else
+		throw std::runtime_error("Invalid dzt");
 
 	readMarks(in, channel, offset, &hdr);
 	if(!marks.size())
@@ -554,14 +565,8 @@ std::vector<std::pair<double, double>> Profile::readGPSFromDzg()
 			if(nmea_sentence.type() == "GGA" || nmea_sentence.type() == "RMC")
 			{
 				nmea::gga gga(nmea_sentence);
-				//std::cout << "UTC: " << std::fixed << std::setprecision(2) << gga.utc.get() << std::endl;
-
 				if(gga.latitude.exists() && gga.longitude.exists())
-				{
-					//std::cout << "Latitude: " << std::fixed << std::setprecision(6) << gga.latitude.get() << std::endl;
-					//std::cout << "Longitude: " << std::fixed << std::setprecision(6) << gga.longitude.get() << std::endl;
 					ret.push_back(std::make_pair(gga.latitude.get(), gga.longitude.get()));
-				}
 
 			}
 		}
@@ -671,6 +676,11 @@ void Profile::open_ss(std::string name)
 				data[i] = buf;
 			}
 		}
+		distInterval = 10/traces; 
+		// TODO custom distance in case of no header information
+		// here we use 10 meters as length of a profile
+		// it's a little bit inconsistence with how gssi and mala formats are treated here
+		// because when they are being loaded and distance is wrong, exception is raised
 	}
 
 	readTimeDomain();
@@ -683,6 +693,7 @@ void Profile::read_hd(std::string name)
 	if(!in)
 		throw std::invalid_argument("No hd header file");
 	std::string line;
+	float start = -1, end = -1;
 	while(std::getline(in, line)) 
 	{
 		size_t sep = line.find("=");
@@ -719,7 +730,26 @@ void Profile::read_hd(std::string name)
 				throw std::invalid_argument("Bad header info");
 			}
 		}
+		else if(key == "FINAL POSITION")
+		{
+			end = std::stod(value);
+			if(end <= 0)
+			{
+				in.close();
+				throw std::invalid_argument("Bad header info");
+			}
+		}
+		else if(key == "STARTING POSITION")
+		{
+			start = std::stod(value);
+			if(start < 0)
+				start = -1;
+		}
 	}
+	
+	if(start == -1)
+		start = 0;
+	distInterval = (end-start)/(traces-1);
 	in.close();
 }
 
@@ -796,6 +826,15 @@ void Profile::read_rad(std::string name)
 				throw std::invalid_argument("Bad header info");
 			}
 		}
+		else if(key == "DISTANCE INTERVAL")
+		{
+			distInterval = std::stod(value);
+			if(distInterval <= 0)
+			{
+				in.close();
+				throw std::invalid_argument("Bad header info");
+			}
+		}
 		else if(key == "FREQUENCY")
 		{
 			frequency = std::stod(value);
@@ -805,9 +844,12 @@ void Profile::read_rad(std::string name)
 				throw std::invalid_argument("Bad header info");
 			}
 		}
+
 	}
 
-	if(timeWindow == std::numeric_limits<float>::quiet_NaN() || frequency == std::numeric_limits<double>::quiet_NaN())
+	if(timeWindow == std::numeric_limits<float>::quiet_NaN() || 
+			frequency == std::numeric_limits<double>::quiet_NaN() ||
+			distInterval == std::numeric_limits<double>::quiet_NaN())
 		throw std::invalid_argument("Bad header info");
 	else
 	{

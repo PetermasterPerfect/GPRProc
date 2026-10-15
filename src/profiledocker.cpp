@@ -69,7 +69,7 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks, bool depth)
 				{
 					plot->yAxis2->setVisible(true);
 					plot->yAxis2->setTickLabels(true);
-					plot->yAxis2->setLabel("v");
+					plot->yAxis2->setLabel("depth [m]");
 					plot->yAxis2->setRangeReversed(true);
 					plot->yAxis2->setRange(0, vel*profile->timeWindow/2);
 				}

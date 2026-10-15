@@ -40,7 +40,8 @@ struct Profile
 	size_t samples;
 	size_t traces;
 	float frequency = std::numeric_limits<double>::quiet_NaN();
-	float timeWindow =  std::numeric_limits<double>::quiet_NaN();
+	float timeWindow = std::numeric_limits<double>::quiet_NaN();
+	float distInterval = std::numeric_limits<double>::quiet_NaN();
 	float *data = nullptr;
 	float *timeDomain = nullptr;
 	size_t *picks = nullptr;
@@ -52,6 +53,12 @@ struct Profile
 		double T = timeWindow;
 		return samples*1e+9/T;  
 	}
+
+	const inline double xend()
+	{
+		return (traces-1)*distInterval;  
+	}
+
 
 	std::pair<QVector<double>, QVector<double>> prepareWiggleData(size_t, char);
 	QCustomPlot* createWiggle(size_t, char type, QWidget *parent=nullptr);
