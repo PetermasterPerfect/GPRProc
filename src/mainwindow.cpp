@@ -70,21 +70,6 @@ void MainWindow::loadUserMarks()
     loadDialog->exec(); 
 }
 
-void MainWindow::undo()
-{
-    QMessageBox::about(this, tr("UNDO"),
-            tr("The <b>Menu</b> example shows how to create "
-               "menu-bar menus and context menus."));
-}
-
-void MainWindow::redo()
-{
-    QMessageBox::about(this, tr("REDO"),
-            tr("The <b>Menu</b> example shows how to create "
-               "menu-bar menus and context menus."));
-}
-
-
 void MainWindow::traceNormalization()
 {
 	auto docker = dynamic_cast<ProfileDocker*>(mainTab->tabWidget->currentWidget());

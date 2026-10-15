@@ -45,8 +45,6 @@ protected:
 public slots:
     void onOpenFile();
     void loadUserMarks();
-    void undo();
-    void redo();
 	void wiggleView();
 	void traceNormalization();
 	void colorScale();
@@ -73,8 +71,6 @@ private:
     QAction *openAct;
     QAction *loadMarksAct;
     QAction *exitAct;
-    QAction *undoAct;
-    QAction *redoAct;
 	QAction *wiggleViewAct;
 	QAction *traceNormalizationAct;
 	QAction *colorScaleAct;
