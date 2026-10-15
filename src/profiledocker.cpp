@@ -67,6 +67,8 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks, bool depth)
 			{
 				if(depth)
 				{
+
+					rescaleAxis(plot->yAxis2, dz);
 					plot->yAxis2->setVisible(true);
 					plot->yAxis2->setTickLabels(true);
 					plot->yAxis2->setLabel("depth [m]");
@@ -141,6 +143,8 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks, bool depth)
 					delete[] norm;
 			}
 
+			rescaleAxis(plot->xAxis, dx);
+			rescaleAxis(plot->yAxis, dt);
 			replotColorScale(plot);
 			plot->replot();
 		}
@@ -151,6 +155,24 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks, bool depth)
 	traceNormalization = traceNorm;
 	if(marks != userMarks)
 		userMarks = marks;
+}
+
+void ProfileDocker::rescaleAxis(QCPAxis *axis, float d)
+{
+    if (d > 0)
+    {
+        auto ticker = QSharedPointer<SubTickTicker<QCPAxisTickerFixed>>::create();
+        ticker->setTickStep(d);
+        ticker->setScaleStrategy(QCPAxisTickerFixed::ssNone);
+        ticker->subTicks = subticks;
+        axis->setTicker(ticker);
+    }
+    else
+    {
+        auto ticker = QSharedPointer<SubTickTicker<QCPAxisTicker>>::create();
+        ticker->subTicks = subticks;
+        axis->setTicker(ticker);
+    }
 }
 
 void ProfileDocker::removeColorMap(QCustomPlot* radargram)

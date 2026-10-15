@@ -5,6 +5,16 @@
 #include "DockManager.h"
 #include "profile.h"
 
+template <class Base>
+class SubTickTicker : public Base
+{
+public:
+    int subTicks = 0;
+protected:
+    int getSubTickCount(double /*tickStep*/) override { return subTicks; }
+};
+
+
 class MyQComboBox : public QComboBox
 {
     Q_OBJECT
@@ -37,6 +47,11 @@ public:
 	bool depthAxis = false;
 	float scale = 1;
 	float vel = 0.1;
+	float dx = 0;
+	float dt = 0;
+	float dz = 0;
+	char subticks = 5;
+
 	QCPColorGradient::GradientPreset gradType = QCPColorGradient::gpGrayscale;
 	std::map<QCustomPlot*, QCPColorMap*> radargram2ColorMap;
 	std::map<QString, std::shared_ptr<Profile>> processingSteps;
@@ -58,6 +73,7 @@ private:
 	QString name;
 	void replotColorScale(QCustomPlot*);
 	void resetProperties();
+	void rescaleAxis(QCPAxis*, float);
 };
 
 #endif

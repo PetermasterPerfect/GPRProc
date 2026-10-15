@@ -318,6 +318,9 @@ void MainWindow::createActions()
     procStepsAct = new QAction(tr("&Processing steps"), this);
     connect(procStepsAct, &QAction::triggered, this, &MainWindow::showProcStepsDialog);
 
+    plotSettingsAct = new QAction(tr("&Plot settings"), this);
+    connect(plotSettingsAct, &QAction::triggered, this, &MainWindow::showPlotSettingsDialog);
+
 } 
 
 void MainWindow::createMenus()
@@ -333,6 +336,7 @@ void MainWindow::createMenus()
 	viewMenu->addAction(traceNormalizationAct);
 	viewMenu->addAction(colorScaleAct);
 	viewMenu->addAction(depthAxisAct);
+	viewMenu->addAction(plotSettingsAct);
 	viewMenu->addAction(userMarksAct);
 	viewMenu->addAction(mapViewAct);
 
@@ -441,6 +445,16 @@ void MainWindow::showProcStepsDialog()
     options->setAttribute(Qt::WA_DeleteOnClose);
     options->exec(); 
 }
+
+void MainWindow::showPlotSettingsDialog()
+{
+	if(!mainTab->tabWidget->currentWidget())
+		return;
+    PlotSettingsDialog *options = new PlotSettingsDialog(mainTab->tabWidget, this);
+    options->setAttribute(Qt::WA_DeleteOnClose);
+    options->exec(); 
+}
+
 
 void MainWindow::onOpenFile()
 {

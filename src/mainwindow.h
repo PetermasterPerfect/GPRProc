@@ -10,6 +10,7 @@
 #include "tabbedworkspacewidget.h"
 #include "proceduresdialog.h"
 #include "processingstepsdialog.h"
+#include "plotsettingsdialog.h"
 #include "loadmarksdialog.h"
 
 QT_BEGIN_NAMESPACE
@@ -62,6 +63,7 @@ private:
 	void setUpWiggle(ProfileDocker*, size_t, int idx=0);
 	void showProceduresDialog();
 	void showProcStepsDialog();
+	void showPlotSettingsDialog();
 
 	TabbedWorkspaceWidget *mainTab;
     QMenu *fileMenu;
@@ -79,6 +81,7 @@ private:
 	QAction *mapViewAct;
 	QAction *proceduresAct;
 	QAction *procStepsAct;
+	QAction *plotSettingsAct;
 	QComboBox *colormapCombo;
 	QDoubleSpinBox *scaleSpinBox;
 	QDoubleSpinBox *velSpinBox;

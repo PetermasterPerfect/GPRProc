@@ -24,6 +24,7 @@ qt_add_executable(GPRProc
 	src/proceduresdialog.cpp
 	src/processingstepsdialog.cpp
 	src/loadmarksdialog.cpp
+	src/plotsettingsdialog.cpp
 	src/pugixml.cpp
 	src/qml/qml.qrc
 )
