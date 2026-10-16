@@ -272,6 +272,9 @@ void MainWindow::createActions()
     openAct->setStatusTip(tr("Open an existing file"));
     connect(openAct, &QAction::triggered, this, &MainWindow::onOpenFile);
 
+	exportAct = new QAction(tr("&Export..."), this);
+	exportAct->setStatusTip(tr("Export image"));
+    connect(exportAct, &QAction::triggered, this, &MainWindow::showExportDialog);
 
     loadMarksAct = new QAction(tr("&Load marks..."), this);
     loadMarksAct->setStatusTip(tr("Load the user marks"));
@@ -327,6 +330,7 @@ void MainWindow::createMenus()
 {
     fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(openAct);
+    fileMenu->addAction(exportAct);
     fileMenu->addAction(loadMarksAct);
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
@@ -455,6 +459,14 @@ void MainWindow::showPlotSettingsDialog()
     options->exec(); 
 }
 
+void MainWindow::showExportDialog()
+{
+	if(!mainTab->tabWidget->currentWidget())
+		return;
+    ExportDialog *options = new ExportDialog(mainTab->tabWidget, this);
+    options->setAttribute(Qt::WA_DeleteOnClose);
+    options->exec(); 
+}
 
 void MainWindow::onOpenFile()
 {

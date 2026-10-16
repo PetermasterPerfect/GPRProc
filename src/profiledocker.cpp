@@ -53,100 +53,16 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks, bool depth)
 
 		if(auto plot = dynamic_cast<QCustomPlot*>(widget->widget()))
 		{
-			QCPColorGradient gradient;
-			gradient.loadPreset(gradType);
-			radargram2ColorMap[plot]->setGradient(gradient);
-			auto mapData = radargram2ColorMap[plot]->data();
 			std::shared_ptr<Profile> profile;
 			if(processingSteps.find(widget->objectName()) != processingSteps.end())
 				profile = processingSteps[widget->objectName()];
 			else
 				profile = anonymousProc.second;
 
-			if(depth != depthAxis || (depth && depthAxis))
-			{
-				if(depth)
-				{
-
-					rescaleAxis(plot->yAxis2, dz);
-					plot->yAxis2->setVisible(true);
-					plot->yAxis2->setTickLabels(true);
-					plot->yAxis2->setLabel("depth [m]");
-					plot->yAxis2->setRangeReversed(true);
-					plot->yAxis2->setRange(0, vel*profile->timeWindow/2);
-				}
-				else
-				{
-					plot->yAxis2->setVisible(false);
-					plot->yAxis2->setTickLabels(false);
-				}
-				depthAxis = depth;
-			}
-
-			if(marks != profile->marksOn || (marks && profile->marksOn))
-			{
-				std::cout << "count: " << plot->axisRectCount() << "\n";
-				if(marks)
-					for(auto mark : profile->marks)
-					{
-						QCPItemStraightLine *line = new QCPItemStraightLine(plot);
-						line->point1->setCoords(mark, 0);
-						line->point2->setCoords(mark, profile->samples-1);
-						line->setPen(QPen(Qt::blue, 2, Qt::DashLine));
-					}
-				else
-				{
-					size_t n = profile->marks.size();
-					while(n)
-					{
-						if(!plot->itemCount())
-							break;
-						for(int i=0; i<plot->itemCount(); i++)
-							if(auto line = dynamic_cast<QCPItemStraightLine*>(plot->item(i)))
-							{
-								plot->removeItem(line);
-								n--;
-								break;
-							}
-					}
-				}
-				profile->marksOn = marks;
-
-			}
-			if(sc != scale || traceNorm != traceNormalization)
-			{
-				float *norm = nullptr;
-				if(traceNorm)
-					norm = profile->maxSamplePerTrace();
-				for(size_t i=0; i<profile->traces; i++)
-					for(size_t j=0; j<profile->samples; j++)
-					{
-						float cell = profile->data[i*profile->samples+j];
-						if(norm)
-							mapData->setCell(i, j, cell/norm[i]);
-						else
-							mapData->setCell(i, j, cell);
-					}
-				radargram2ColorMap[plot]->rescaleDataRange(true);
-
-				for(size_t i=0; i<profile->traces; i++)
-					for(size_t j=0; j<profile->samples; j++)
-					{
-						float cell = profile->data[i*profile->samples+j];
-						if(norm)
-							mapData->setCell(i, j, (cell/norm[i])*sc);
-						else
-							mapData->setCell(i, j, cell*sc);
-					}
-
-				if(norm)
-					delete[] norm;
-			}
-
-			rescaleAxis(plot->xAxis, dx);
-			rescaleAxis(plot->yAxis, dt);
-			replotColorScale(plot);
-			plot->replot();
+			QCPColorGradient gradient;
+			gradient.loadPreset(gradType);
+			radargram2ColorMap[plot]->setGradient(gradient);
+			extendPlot(profile, plot, radargram2ColorMap[plot], sc, traceNorm, marks, depth);
 		}
 
 	}
@@ -155,6 +71,105 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks, bool depth)
 	traceNormalization = traceNorm;
 	if(marks != userMarks)
 		userMarks = marks;
+}
+
+void ProfileDocker::extendPlot(std::shared_ptr<Profile> profile, QCustomPlot *plot, QCPColorMap *map)
+{
+	extendPlot(profile, plot, map, scale, traceNormalization, userMarks, depthAxis);
+}
+
+void ProfileDocker::extendPlot(std::shared_ptr<Profile> profile, QCustomPlot *plot, QCPColorMap *map,
+		float sc, bool traceNorm, bool marks, bool depth)
+{
+	auto mapData = map->data();
+	if(depth != depthAxis || (depth && depthAxis))
+	{
+		if(depth)
+		{
+			rescaleAxis(plot->yAxis2, dz);
+			plot->yAxis2->setVisible(true);
+			plot->yAxis2->setTickLabels(true);
+			plot->yAxis2->setLabel("depth [m]");
+			plot->yAxis2->setRangeReversed(true);
+			plot->yAxis2->setRange(0, vel*profile->timeWindow/2);
+		}
+		else
+		{
+			plot->yAxis2->setVisible(false);
+			plot->yAxis2->setTickLabels(false);
+		}
+		depthAxis = depth;
+	}
+
+	if(marks != profile->marksOn || (marks && profile->marksOn))
+	{
+		std::cout << "count: " << plot->axisRectCount() << "\n";
+		if(marks)
+			for(auto mark : profile->marks)
+			{
+				QCPItemStraightLine *line = new QCPItemStraightLine(plot);
+				line->point1->setCoords(mark*profile->distInterval, 0);
+				line->point2->setCoords(mark*profile->distInterval, profile->samples-1);
+				line->setPen(QPen(Qt::blue, 2, Qt::DashLine));
+			}
+		else
+		{
+			size_t n = profile->marks.size();
+			while(n)
+			{
+				if(!plot->itemCount())
+					break;
+				for(int i=0; i<plot->itemCount(); i++)
+					if(auto line = dynamic_cast<QCPItemStraightLine*>(plot->item(i)))
+					{
+						plot->removeItem(line);
+						n--;
+						break;
+					}
+			}
+		}
+		profile->marksOn = marks;
+
+	}
+	if(sc != scale || traceNorm != traceNormalization)
+	{
+		float *norm = nullptr;
+		if(traceNorm)
+			norm = profile->maxSamplePerTrace();
+		for(size_t i=0; i<profile->traces; i++)
+			for(size_t j=0; j<profile->samples; j++)
+			{
+				float cell = profile->data[i*profile->samples+j];
+				if(norm)
+					mapData->setCell(i, j, cell/norm[i]);
+				else
+					mapData->setCell(i, j, cell);
+			}
+		radargram2ColorMap[plot]->rescaleDataRange(true);
+
+		for(size_t i=0; i<profile->traces; i++)
+			for(size_t j=0; j<profile->samples; j++)
+			{
+				float cell = profile->data[i*profile->samples+j];
+				if(norm)
+					mapData->setCell(i, j, (cell/norm[i])*sc);
+				else
+					mapData->setCell(i, j, cell*sc);
+			}
+
+		if(norm)
+			delete[] norm;
+	}
+
+	rescaleAxis(plot->xAxis, dx);
+	rescaleAxis(plot->yAxis, dt);
+	replotColorScale(plot, map);
+	plot->replot();
+}
+
+std::optional<std::pair<QCustomPlot*, QCPColorMap*>> ProfileDocker::singlePlot(QWidget *parent, std::shared_ptr<Profile> profile)
+{
+	return profile->createRadargram(parent, gradType, scale);
 }
 
 void ProfileDocker::rescaleAxis(QCPAxis *axis, float d)
@@ -183,9 +198,8 @@ void ProfileDocker::removeColorMap(QCustomPlot* radargram)
 }
 
 
-void ProfileDocker::replotColorScale(QCustomPlot *plot)
+void ProfileDocker::replotColorScale(QCustomPlot *plot, QCPColorMap *colorMap)
 {
-	auto colorMap = radargram2ColorMap[plot];
 	if(auto colorSc = plot->plotLayout()->element(0, 1))
 	{
 		plot->plotLayout()->remove(colorSc);

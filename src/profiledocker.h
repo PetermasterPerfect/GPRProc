@@ -69,9 +69,13 @@ public:
 	void removeProcessingStep(QString);
 	void removeProcessingSteps();
 	ads::CDockWidget* addRadargramView(std::shared_ptr<Profile>, QString);
+	void extendPlot(std::shared_ptr<Profile>, QCustomPlot*, QCPColorMap*);
+	void extendPlot(std::shared_ptr<Profile>, QCustomPlot*,QCPColorMap*,
+			float, bool, bool, bool);
+	std::optional<std::pair<QCustomPlot*, QCPColorMap*>> singlePlot(QWidget*, std::shared_ptr<Profile>);
 private:
 	QString name;
-	void replotColorScale(QCustomPlot*);
+	void replotColorScale(QCustomPlot*, QCPColorMap*);
 	void resetProperties();
 	void rescaleAxis(QCPAxis*, float);
 };

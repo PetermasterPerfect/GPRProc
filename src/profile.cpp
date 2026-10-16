@@ -269,6 +269,8 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QW
 		return std::nullopt;
 
 	MyQCustomPlot *imagePlot = new MyQCustomPlot(parent); // TODO: add parent
+	if(!imagePlot)
+		return std::nullopt;
 
 	imagePlot->xAxis->setVisible(false);
 	imagePlot->xAxis = imagePlot->xAxis2;

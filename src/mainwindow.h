@@ -12,6 +12,7 @@
 #include "processingstepsdialog.h"
 #include "plotsettingsdialog.h"
 #include "loadmarksdialog.h"
+#include "exportdialog.h"
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -64,6 +65,7 @@ private:
 	void showProceduresDialog();
 	void showProcStepsDialog();
 	void showPlotSettingsDialog();
+	void showExportDialog();
 
 	TabbedWorkspaceWidget *mainTab;
     QMenu *fileMenu;
@@ -82,6 +84,7 @@ private:
 	QAction *proceduresAct;
 	QAction *procStepsAct;
 	QAction *plotSettingsAct;
+	QAction *exportAct;
 	QComboBox *colormapCombo;
 	QDoubleSpinBox *scaleSpinBox;
 	QDoubleSpinBox *velSpinBox;
