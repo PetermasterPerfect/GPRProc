@@ -71,7 +71,7 @@ ExportDialog::ExportDialog(QTabWidget *tab, QWidget *parent)
 		auto width = widthSpinBox->value();
 		auto height = heightSpinBox->value();
 
-		if(fmt == "pdf")      ret = plot->savePdf(path);
+		if(fmt == "pdf")      ret = plot->savePdf(path, width, height);
 		else if(fmt == "jpg") ret = plot->saveJpg(path, width, height);
 		else if(fmt == "png") ret = plot->savePng(path, width, height, 2.0, -1, 150);
 		else if(fmt == "bmp") ret = plot->saveBmp(path, width, height, 2.0, 150);

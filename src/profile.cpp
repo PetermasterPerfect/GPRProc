@@ -89,6 +89,9 @@ Profile::Profile(Profile& prof)
 	samples = prof.samples;
 	traces = prof.traces;
 	timeWindow = prof.timeWindow;
+	distInterval = prof.distInterval;
+	frequency = prof.frequency;
+
 	data = (float*) fftwf_malloc(samples*traces*sizeof(float));
 	if(!data)
 		throw std::runtime_error("Memory allocation error");
@@ -123,6 +126,8 @@ Profile::Profile(Profile&& prof)
 	prof.timeDomain = nullptr;
 	picks = prof.picks;
 	prof.picks = nullptr;
+	distInterval = prof.distInterval;
+	frequency = prof.frequency;
 
 	marks = prof.marks;
 
@@ -145,6 +150,9 @@ Profile::Profile(Profile *prof, float *buf)
 	traces = prof->traces;
 	timeWindow = prof->timeWindow;
 	data = buf;
+	distInterval = prof->distInterval;
+	frequency = prof->frequency;
+
 
 	timeDomain = new float[samples];
 	for(unsigned i=0; i<samples; i++)

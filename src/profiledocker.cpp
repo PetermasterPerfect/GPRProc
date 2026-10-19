@@ -62,31 +62,31 @@ void ProfileDocker::replot(float sc, bool traceNorm, bool marks, bool depth)
 			QCPColorGradient gradient;
 			gradient.loadPreset(gradType);
 			radargram2ColorMap[plot]->setGradient(gradient);
-			extendPlot(profile, plot, radargram2ColorMap[plot], sc, traceNorm, marks, depth);
+			extendPlot(profile, plot, radargram2ColorMap[plot], sc, traceNorm, marks, depth, true);
 		}
 
 	}
 
 	scale = sc;
 	traceNormalization = traceNorm;
+	depthAxis = depth;
 	if(marks != userMarks)
 		userMarks = marks;
 }
 
 void ProfileDocker::extendPlot(std::shared_ptr<Profile> profile, QCustomPlot *plot, QCPColorMap *map)
 {
-	extendPlot(profile, plot, map, scale, traceNormalization, userMarks, depthAxis);
+	extendPlot(profile, plot, map, scale, traceNormalization, userMarks, depthAxis, false);
 }
 
 void ProfileDocker::extendPlot(std::shared_ptr<Profile> profile, QCustomPlot *plot, QCPColorMap *map,
-		float sc, bool traceNorm, bool marks, bool depth)
+		float sc, bool traceNorm, bool marks, bool depth, bool onCanvas)
 {
 	auto mapData = map->data();
-	if(depth != depthAxis || (depth && depthAxis))
+	if(depth != depthAxis || !onCanvas)
 	{
 		if(depth)
 		{
-			rescaleAxis(plot->yAxis2, dz);
 			plot->yAxis2->setVisible(true);
 			plot->yAxis2->setTickLabels(true);
 			plot->yAxis2->setLabel("depth [m]");
@@ -98,10 +98,9 @@ void ProfileDocker::extendPlot(std::shared_ptr<Profile> profile, QCustomPlot *pl
 			plot->yAxis2->setVisible(false);
 			plot->yAxis2->setTickLabels(false);
 		}
-		depthAxis = depth;
 	}
 
-	if(marks != profile->marksOn || (marks && profile->marksOn))
+	if(marks != profile->marksOn || !onCanvas)
 	{
 		std::cout << "count: " << plot->axisRectCount() << "\n";
 		if(marks)
@@ -131,7 +130,7 @@ void ProfileDocker::extendPlot(std::shared_ptr<Profile> profile, QCustomPlot *pl
 		profile->marksOn = marks;
 
 	}
-	if(sc != scale || traceNorm != traceNormalization)
+	if(sc != scale || traceNorm != traceNormalization || !onCanvas)
 	{
 		float *norm = nullptr;
 		if(traceNorm)
@@ -163,6 +162,7 @@ void ProfileDocker::extendPlot(std::shared_ptr<Profile> profile, QCustomPlot *pl
 
 	rescaleAxis(plot->xAxis, dx);
 	rescaleAxis(plot->yAxis, dt);
+	rescaleAxis(plot->yAxis2, dz);
 	replotColorScale(plot, map);
 	plot->replot();
 }
@@ -272,7 +272,7 @@ void ProfileDocker::resetProperties()
 ads::CDockWidget* ProfileDocker::addRadargramView(std::shared_ptr<Profile> profile, QString name)
 {
 	auto widget = new ads::CDockWidget(name, this);
-	auto plotPair = profile->createRadargram(this);
+	auto plotPair = profile->createRadargram(this, gradType, scale);
 	if(!plotPair)
 		return nullptr;
 
