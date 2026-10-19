@@ -40,6 +40,9 @@ void ProfileDocker::replotMarks(bool marks)
 
 void ProfileDocker::replotDepthAxis(bool depth)
 {
+	if(depth)
+		depthAxis = false;
+	
 	replot(scale, traceNormalization, userMarks, depth);
 }
 
@@ -89,7 +92,7 @@ void ProfileDocker::extendPlot(std::shared_ptr<Profile> profile, QCustomPlot *pl
 		{
 			plot->yAxis2->setVisible(true);
 			plot->yAxis2->setTickLabels(true);
-			plot->yAxis2->setLabel("depth [m]");
+			((MyQCustomPlot*)plot)->setAxisTitle(plot->yAxis2, profile->zTitle);
 			plot->yAxis2->setRangeReversed(true);
 			plot->yAxis2->setRange(0, vel*profile->timeWindow/2);
 		}
@@ -144,7 +147,7 @@ void ProfileDocker::extendPlot(std::shared_ptr<Profile> profile, QCustomPlot *pl
 				else
 					mapData->setCell(i, j, cell);
 			}
-		radargram2ColorMap[plot]->rescaleDataRange(true);
+		map->rescaleDataRange(true);
 
 		for(size_t i=0; i<profile->traces; i++)
 			for(size_t j=0; j<profile->samples; j++)
@@ -278,9 +281,11 @@ ads::CDockWidget* ProfileDocker::addRadargramView(std::shared_ptr<Profile> profi
 
 	widget->setWidget(plotPair.value().first);
 	widget->setFeature(ads::CDockWidget::DockWidgetDeleteOnClose, 1);
-	radargram2ColorMap.insert(plotPair.value());
+	auto [plot, colorMap] = plotPair.value();
+	radargram2ColorMap.insert({plot, colorMap});
 	addDockWidget(ads::TopDockWidgetArea, widget);
 
+	extendPlot(profile, plot, colorMap);
 	connect(widget, &ads::CDockWidget::closed, this, [=]() {
 				std::cout << "dock widget closing\n";
 				removeDockWidget(widget);

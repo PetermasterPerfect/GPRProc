@@ -47,6 +47,9 @@ struct Profile
 	size_t *picks = nullptr;
 	std::vector<size_t> marks;
 	bool marksOn = false;
+	std::pair<QString, unsigned char> xTitle = std::make_pair("distance [m]", 14);
+	std::pair<QString, unsigned char> yTitle = std::make_pair("time [ns]", 14);
+	std::pair<QString, unsigned char> zTitle = std::make_pair("depth [m]", 14);
 
 	const inline double fs()
 	{
@@ -151,9 +154,40 @@ private:
 class MyQCustomPlot : public QCustomPlot 
 {
     Q_OBJECT
-public:
-	MyQCustomPlot(QWidget *parent=nullptr) : QCustomPlot(parent)
+	Profile *prof;
+
+	void changeTitle(QCPAxis *axis, QString dialogTitle, std::pair<QString, unsigned char> &textInfo)
 	{
+		QDialog dialog;
+		dialog.setWindowTitle(dialogTitle);
+
+		QHBoxLayout *layout = new QHBoxLayout(&dialog);
+
+		QLineEdit *lineEdit = new QLineEdit(&dialog);
+		QSpinBox *fontSizeSpin = new QSpinBox(this);
+		QPushButton *okButton = new QPushButton("Ok", this);
+		fontSizeSpin->setRange(2, 72);
+		fontSizeSpin->setValue(10);
+		layout->addWidget(lineEdit);
+		layout->addWidget(fontSizeSpin);
+		layout->addWidget(okButton);
+		QObject::connect(lineEdit, &QLineEdit::returnPressed, &dialog, &QDialog::accept);
+		QObject::connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+		if (dialog.exec() == QDialog::Accepted)
+		{
+			auto title = lineEdit->text();
+			auto fontSz = fontSizeSpin->value();
+			textInfo = std::make_pair(title, fontSz); 
+			setAxisTitle(axis, textInfo);
+			
+		}
+		this->replot();
+	}
+
+public:
+	MyQCustomPlot(Profile *p, QWidget *parent=nullptr) : QCustomPlot(parent)
+	{
+		prof = p;
 		setContextMenuPolicy(Qt::CustomContextMenu);
 		connect(this, &QCustomPlot::customContextMenuRequested,
 			this, &MyQCustomPlot::showContextMenu);
@@ -165,61 +199,38 @@ public:
 
 		QAction xTitleAct("Add x axis title", this);
 		QAction yTitleAct("Add y axis title", this);
+		QAction zTitleAct("Add z axis title", this);
 		connect(&xTitleAct, &QAction::triggered, this, &MyQCustomPlot::addXTitleAction);
 		connect(&yTitleAct, &QAction::triggered, this, &MyQCustomPlot::addYTitleAction);
+		connect(&zTitleAct, &QAction::triggered, this, &MyQCustomPlot::addZTitleAction);
 		contextMenu.addAction(&xTitleAct);
 		contextMenu.addAction(&yTitleAct);
+		contextMenu.addAction(&zTitleAct);
 		contextMenu.exec(mapToGlobal(pos));
 	}
 
 	void addXTitleAction()
 	{
-		QDialog dialog;
-		dialog.setWindowTitle("X axis title");
-
-		QHBoxLayout *layout = new QHBoxLayout(&dialog);
-
-		QLineEdit *lineEdit = new QLineEdit(&dialog);
-		QSpinBox *fontSizeSpin = new QSpinBox(this);
-		QPushButton *okButton = new QPushButton("Ok", this);
-		fontSizeSpin->setRange(2, 72);
-		fontSizeSpin->setValue(10);
-		layout->addWidget(lineEdit);
-		layout->addWidget(fontSizeSpin);
-		layout->addWidget(okButton);
-		QObject::connect(lineEdit, &QLineEdit::returnPressed, &dialog, &QDialog::accept);
-		QObject::connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
-		if (dialog.exec() == QDialog::Accepted)
-		{
-			auto font = QFont("Arial", fontSizeSpin->value());
-			this->xAxis2->setLabel(lineEdit->text());
-			this->xAxis2->setLabelFont(font);
-		}
+		changeTitle(xAxis2,  "X axis title",prof->xTitle);
 	}
 
 	void addYTitleAction()
 	{
-		QDialog dialog;
-		dialog.setWindowTitle("Y axis title");
+		changeTitle(yAxis,"Y axis title", prof->yTitle);
+	}
 
-		QHBoxLayout *layout = new QHBoxLayout(&dialog);
+	void addZTitleAction()
+	{
+		changeTitle(yAxis2,"Z axis title", prof->zTitle);
+	}
 
-		QLineEdit *lineEdit = new QLineEdit(&dialog);
-		QSpinBox *fontSizeSpin = new QSpinBox(this);
-		QPushButton *okButton = new QPushButton("Ok", this);
-		fontSizeSpin->setRange(2, 72);
-		fontSizeSpin->setValue(10);
-		layout->addWidget(lineEdit);
-		layout->addWidget(fontSizeSpin);
-		layout->addWidget(okButton);
-		QObject::connect(lineEdit, &QLineEdit::returnPressed, &dialog, &QDialog::accept);
-		QObject::connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
-		if (dialog.exec() == QDialog::Accepted)
-		{
-			auto font = QFont("Arial", fontSizeSpin->value());
-			this->yAxis->setLabel(lineEdit->text());
-			this->yAxis->setLabelFont(font);
-		}
+
+	void setAxisTitle(QCPAxis *axis, std::pair<QString, unsigned char> textInfo)
+	{
+		auto [title, sz] = textInfo; 
+		auto font = QFont("Arial", sz);
+		axis->setLabel(title);
+		axis->setLabelFont(font);
 	}
 
 };

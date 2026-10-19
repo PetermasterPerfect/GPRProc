@@ -276,7 +276,7 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QW
 	if(!init)
 		return std::nullopt;
 
-	MyQCustomPlot *imagePlot = new MyQCustomPlot(parent); // TODO: add parent
+	MyQCustomPlot *imagePlot = new MyQCustomPlot(this, parent); // TODO: add parent
 	if(!imagePlot)
 		return std::nullopt;
 
@@ -289,8 +289,10 @@ std::optional<std::pair<QCustomPlot*, QCPColorMap*>> Profile::createRadargram(QW
 	imagePlot->axisRect()->setRangeDragAxes(imagePlot->xAxis2, imagePlot->yAxis);
 	imagePlot->axisRect()->setRangeZoomAxes(imagePlot->xAxis2, imagePlot->yAxis);
 
-	imagePlot->xAxis2->setLabel("distance [m]");
-	imagePlot->yAxis->setLabel("time [ns]");
+	imagePlot->setAxisTitle(imagePlot->xAxis2, xTitle);
+	imagePlot->setAxisTitle(imagePlot->yAxis, yTitle);
+	//imagePlot->xAxis2->setLabel("distance [m]");
+	//imagePlot->yAxis->setLabel("time [ns]");
 	imagePlot->yAxis->setRangeReversed(true);
 	float sampTime = timeWindow/samples;
 	QCPRange *samplesRange = new QCPRange(0, timeWindow-sampTime ? timeWindow-sampTime : 1);
