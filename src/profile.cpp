@@ -359,14 +359,14 @@ void Profile::open_gssi(std::string name)
 	int channel = hdr.rh_nchan > 1 ? askForChannelDialog(&hdr) : 1;
 
 	samples = hdr.rh_nsamp;
-	timeWindow = hdr.rhf_range;
+	timeWindow = *(float*)&hdr.rhf_range;
 
 	in.seekg(0, std::ios_base::end);
 	size_t offset;
-	if(hdr.rh_data < MINHEADERSIZE)
-		offset = hdr.rh_data*MINHEADERSIZE;
+	if(hdr.rh_data < MINHEADSIZE)
+		offset = hdr.rh_data*MINHEADSIZE;
 	else
-		offset = hdr.rh_nchan*MINHEADERSIZE;
+		offset = hdr.rh_nchan*MINHEADSIZE;
 
 	size_t sz = static_cast<size_t>(in.tellg());
 	if(sz <= offset)
@@ -388,6 +388,7 @@ void Profile::open_gssi(std::string name)
 		in.seekg(offset, std::ios_base::beg);
 		moveOff = 0;
 	}
+	std::cout << "DZT BITS : " << hdr.rh_bits << "\n";
 	if(hdr.rh_bits == 8)
 		data = read_typed_data<uint8_t>(in, sz, moveOff);
 	else if(hdr.rh_bits == 16)
@@ -395,10 +396,15 @@ void Profile::open_gssi(std::string name)
 	else if(hdr.rh_bits == 32)
 		data = read_typed_data<int32_t>(in, sz, moveOff);
 	traces = sz/samples;
-	if(hdr.rhf_spm > 0)
-		distInterval = (traces-1)/hdr.rhf_spm/(traces-1);
+#define SCANS_PER_METER (*(float*)&hdr.rhf_spm)
+	if(SCANS_PER_METER > 0)
+		distInterval = ((float)traces-1)/SCANS_PER_METER/((float)traces-1);
 	else
-		throw std::runtime_error("Invalid dzt");
+	{
+		distInterval = 0.03;
+		std::cerr << "Header doesnt contain any information about profile length\n";
+	}
+		//throw std::runtime_error("Invalid dzt");
 
 	readMarks(in, channel, offset, &hdr);
 	if(!marks.size())
@@ -993,66 +999,46 @@ std::shared_ptr<Profile> Profile::subtractDewow(float t1)
 	return std::make_shared<Profile>(this, filtered);
 }
 
-std::shared_ptr<Profile> Profile::gainFunction(float t1, float t2, float exponent, float maxVal)
+std::shared_ptr<Profile> Profile::gainFunction(float linearGain, float exponent, float startTime, float maxGain)
 {
-	if(t1 < 0 || t2 < 0 || t1 > t2 | t1 > timeWindow || t2 > timeWindow)
-		return std::shared_ptr<Profile>{};
-	size_t startIdx = 0, endIdx = samples-1;
-	bool f = 0;
-	for(size_t i=0; i<samples; i++)
-	{
-		if(timeDomain[i] >= t1 && !f)
-		{
-			startIdx = i;
-			f = 1;
-		}
-		if(timeDomain[i] >= t2)
-		{
-			endIdx = i;
-			break;
-		}
-	}
-	std::cout << startIdx << ", " << endIdx << " <--\n";
-	float *filtered = (float*) fftwf_malloc(sizeof(float)*samples*traces);
+	float pulseWidth = 1.0f / frequency;
+    if(startTime < 0 || startTime > timeWindow ||
+       pulseWidth <= 0 || maxGain < 1.0f)
+        return {};
 
-	for(size_t i=0; i<traces; i++)
-		for(size_t j=startIdx; j<=endIdx; j++)
-		{
-			float t = timeDomain[j];
-			filtered[i*samples+j] = exp((t-timeDomain[startIdx])*timeDomain[1]*exponent)*data[i*samples+j];
-			
-		}
-	for(size_t i=0; i<traces; i++)
-		for(size_t j=endIdx+1; j<samples; j++)
-			filtered[i*samples+j] = exp((timeDomain[endIdx]-timeDomain[startIdx])*timeDomain[1]*exponent)*data[i*samples+j];
-	
-	const size_t sz = traces * samples;
-	const float mean = std::accumulate(data, data + sz, 0.0) / sz;
-	const float meanFilt = std::accumulate(filtered, filtered + sz, 0.0) / sz;
+    float *filtered = (float*)fftwf_malloc(sizeof(float) * samples * traces);
 
-	float varianceData = std::accumulate(data, data + sz, 0.0,
-		[&](float accumulator, const float& val) {
-			return accumulator + (val - mean) * (val - mean);
-		}) / (sz - 1);
-	const float stdData = std::sqrt(varianceData);
+    // ReflexW manual
+    const float velocity = 0.1f;              // m/ns
+    const float a = linearGain / pulseWidth;
+    const float b = exponent * velocity / 8.69f;
 
-	float varianceFilt = std::accumulate(filtered, filtered + sz, 0.0,
-		[&](float accumulator, const float& val) {
-			return accumulator + (val - meanFilt) * (val - meanFilt);
-		}) / (sz - 1);
-	float stdFilt = std::sqrt(varianceFilt);
+    const float dt = timeWindow / (samples - 1);
 
-	for(size_t i=0; i<traces; i++)
-		for(size_t j=0; j<samples; j++)
-		{
-			filtered[i*samples+j] /= stdFilt;
-			filtered[i*samples+j] *= stdData;
-		}
+    for(size_t i = 0; i < traces; i++)
+    {
+        for(size_t j = 0; j < samples; j++)
+        {
+            float t = j * dt;
 
-	return std::make_shared<Profile>(this, filtered);
+            float gain = 1.0f;
+
+            if(t >= startTime)
+            {
+                float x = t - startTime;
+                gain = (1.0f + a * x) * expf(b * x);
+
+                if(gain > maxGain)
+                    gain = maxGain;
+            }
+
+            filtered[i * samples + j] =
+                data[i * samples + j] * gain;
+        }
+    }
+
+    return std::make_shared<Profile>(this, filtered);
 }
-
-
 
 std::shared_ptr<Profile> Profile::ampltitudesTo0(float amplMin, float amplMax)
 {
