@@ -493,14 +493,14 @@ QWidget* ProceduresDialog::createGain()
     page->setLayout(layout);
     
     auto input3 = new QDoubleSpinBox;
-input3->setRange(0, profile->timeWindow);
 input3->setValue(0);
+input3->setMinimum(0);
 input3->setSingleStep(0.001);
 input3->setDecimals(3);
 	
 auto input4 = new QDoubleSpinBox;
 input4->setRange(0, profile->timeWindow);
-input4->setValue(profile->timeWindow);
+input4->setValue(0);
 input4->setSingleStep(0.001);
 input4->setDecimals(3);
 	
@@ -515,11 +515,11 @@ input6->setRange(0, 100000000);
 input6->setValue(100000);
 //inputs
     auto hLayout1_0 = new QHBoxLayout;
-    hLayout1_0->addWidget(new QLabel("Start time: "));
+    hLayout1_0->addWidget(new QLabel("Liner Gain: "));
     hLayout1_0->addWidget(input3);
     layout->addLayout(hLayout1_0);
 auto hLayout1_1 = new QHBoxLayout;
-    hLayout1_1->addWidget(new QLabel("End time: "));
+    hLayout1_1->addWidget(new QLabel("Start time: "));
     hLayout1_1->addWidget(input4);
     layout->addLayout(hLayout1_1);
 auto hLayout1_2 = new QHBoxLayout;
@@ -551,7 +551,7 @@ auto hLayout1_3 = new QHBoxLayout;
     layout->addLayout(hLayout2);
 
     connect(applyButton, &QPushButton::clicked, this, [=](){
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t1, float t2, float exponent, float maxVal)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float linearGain, float exponent, float startTime, float maxGain)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input3->value(), input4->value(), input5->value(), input6->value());
             if(!proccessedProf)
@@ -561,7 +561,7 @@ auto hLayout1_3 = new QHBoxLayout;
             });
 
     connect(applyProcButton, &QPushButton::clicked, this, [=]() {
-            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float t1, float t2, float exponent, float maxVal)>(procedur);
+            auto procFunc = std::any_cast<std::shared_ptr<Profile> (Profile::*)(float linearGain, float exponent, float startTime, float maxGain)>(procedur);
             auto profile = getCurrentProcessing();
             auto proccessedProf = (profile.get()->*procFunc)(input3->value(), input4->value(), input5->value(), input6->value());
             if(!proccessedProf)

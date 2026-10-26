@@ -121,8 +121,8 @@ if __name__ == "__main__":
 
     gain = Procedur("Exponent gain", 'gain', 'gainFunction')
     gain.inputs = [
+            In('QDoubleSpinBox','Liner Gain: ', value='0', mn='0', decimals='3', single_step='0.001'),
             In('QDoubleSpinBox','Start time: ', value='0', rang3='0, profile->timeWindow', decimals='3', single_step='0.001'),
-            In('QDoubleSpinBox','End time: ', value='profile->timeWindow', rang3='0, profile->timeWindow', decimals='3', single_step='0.001'),
             In('QDoubleSpinBox','Exponent: ', value='0', mn='0', decimals='3', single_step='0.001'),
             In('QSpinBox', 'Max value: ', value='100000', rang3='0, 100000000')]
 
